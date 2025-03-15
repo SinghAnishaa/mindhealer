@@ -113,8 +113,11 @@ router.post("/chat", authMiddleware, async (req, res) => {
 router.get("/history", authMiddleware, async (req, res) => {
     try {
         const userId = req.user._id;
-        const chat = await Chat.findOne({ userId });
+        if (!userId) {
+            return res.status(401).json({ error: "Unauthorized: Missing user ID" });
+        }
 
+        const chat = await Chat.findOne({ userId });
         if (!chat) return res.status(404).json({ message: "No chat history found." });
 
         res.json({ messages: chat.messages });
@@ -123,5 +126,6 @@ router.get("/history", authMiddleware, async (req, res) => {
         res.status(500).json({ error: "Server error", details: error.message });
     }
 });
+
 
 module.exports = router;

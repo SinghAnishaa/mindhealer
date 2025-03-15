@@ -9,6 +9,15 @@ require('dotenv').config();
 
 const router = express.Router();
 
+// ✅ Helper Functions to Generate Tokens
+const generateAccessToken = (user) => {
+    return jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "15m" }); // Short-lived
+};
+
+const generateRefreshToken = (user) => {
+    return jwt.sign({ id: user._id }, process.env.REFRESH_SECRET, { expiresIn: "7d" }); // Long-lived
+};
+
 // Ensure `uploads` directory exists
 const uploadDir = 'uploads';
 if (!fs.existsSync(uploadDir)) {
@@ -22,21 +31,17 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-
 // ✅ **Signup Route**
 router.post('/signup', async (req, res) => {
     try {
         const { username, email, password } = req.body;
 
-        // Check if user already exists
         let user = await User.findOne({ email });
         if (user) return res.status(400).json({ message: 'User already exists' });
 
-        // Hash Password
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Create new user
         user = new User({
             username,
             email,
@@ -56,25 +61,36 @@ router.post('/signup', async (req, res) => {
     }
 });
 
-// ✅ **Login Route**
+// ✅ **Login Route (with Refresh Token)**
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-
-        // Check if user exists
         const user = await User.findOne({ email });
+
         if (!user) return res.status(400).json({ message: 'Invalid credentials' });
 
-        // Compare password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
-        // Generate JWT token
-        const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        // ✅ Generate tokens
+        const accessToken = generateAccessToken(user);
+        const refreshToken = generateRefreshToken(user);
+
+        // ✅ Store refresh token in DB
+        user.refreshToken = refreshToken;
+        await user.save();
+
+        // ✅ Set refresh token as HTTP-only cookie
+        res.cookie("refreshToken", refreshToken, {
+            httpOnly: true,
+            secure: false,  // Set to true in production (HTTPS)
+            sameSite: "Strict",
+            path: "/api/auth/refresh-token"
+        });
 
         res.status(200).json({
             message: 'Login successful!',
-            token,
+            accessToken,
             user: {
                 id: user._id,
                 username: user.username,
@@ -92,14 +108,56 @@ router.post('/login', async (req, res) => {
     }
 });
 
+
+
+
+// ✅ **Refresh Token Endpoint**
+router.post('/refresh-token', async (req, res) => {
+    try {
+        const refreshToken = req.cookies.refreshToken;
+        if (!refreshToken) return res.status(401).json({ error: "No refresh token provided" });
+
+        const user = await User.findOne({ refreshToken });
+        if (!user) return res.status(403).json({ error: "Invalid refresh token" });
+
+        jwt.verify(refreshToken, process.env.REFRESH_SECRET, (err, decoded) => {
+            if (err) return res.status(403).json({ error: "Refresh token expired" });
+
+            const newAccessToken = generateAccessToken(user);
+            res.json({ accessToken: newAccessToken });
+        });
+    } catch (error) {
+        console.error("❌ Refresh Token Error:", error);
+        res.status(500).json({ error: "Server error", details: error.message });
+    }
+});
+
+
+
+
+// ✅ **Logout Route (Invalidate Refresh Token)**
+router.post('/logout', async (req, res) => {
+    try {
+        const user = await User.findOne({ refreshToken: req.cookies.refreshToken });
+        if (user) {
+            user.refreshToken = null;
+            await user.save();
+        }
+
+        res.clearCookie("refreshToken", { path: "/api/auth/refresh-token" });
+        res.json({ message: "Logout successful!" });
+    } catch (error) {
+        res.status(500).json({ error: "Server error", details: error.message });
+    }
+});
+
 // ✅ **Get User Details (Protected)**
 router.get('/user', authMiddleware, async (req, res) => {
     try {
-        const user = await User.findById(req.user.id).select("-password"); 
+        const user = await User.findById(req.user.id).select("-password");
         if (!user) return res.status(404).json({ message: "User not found" });
         res.json(user);
     } catch (error) {
-        console.error("❌ Fetch User Error:", error);
         res.status(500).json({ message: "Server error", error: error.message });
     }
 });
@@ -119,7 +177,6 @@ router.post('/upload-profile-image', authMiddleware, upload.single('profileImage
         res.json({ message: "Profile image uploaded successfully!", imageUrl: profileImage });
 
     } catch (error) {
-        console.error("❌ Profile Image Upload Error:", error);
         res.status(500).json({ message: "Server error", error: error.message });
     }
 });
@@ -142,7 +199,6 @@ router.put('/update-profile', authMiddleware, upload.single('profileImage'), asy
         res.json({ message: "Profile updated successfully!", user });
 
     } catch (error) {
-        console.error("❌ Profile Update Error:", error);
         res.status(500).json({ message: "Server error", error: error.message });
     }
 });

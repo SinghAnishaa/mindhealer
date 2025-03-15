@@ -1,215 +1,152 @@
 import "../styles/Chat.css";
 import React, { useState, useEffect, useRef, useContext } from "react";
-import { AuthContext } from "../context/AuthContext";  
-import { useNavigate } from "react-router-dom";  
+import { AuthContext } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const Chat = () => {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState("");
     const [isTyping, setIsTyping] = useState(false);
     const chatEndRef = useRef(null);
-    const { user } = useContext(AuthContext);  // ✅ Get user data
+    const { user, token, setToken } = useContext(AuthContext);
     const navigate = useNavigate();
 
-    // ✅ Fetch token safely (Changed "authToken" → "token")
+    // ✅ Get Token from LocalStorage
+    //const getToken = () => localStorage.getItem("token") || null;
     const getToken = () => {
-        return localStorage.getItem("token") || null;
+        const token = localStorage.getItem("token");
+        if (!token || token === "undefined") {
+            console.error("❌ Token is missing or invalid.");
+            return null;
+        }
+        return token;
     };
 
     // ✅ Redirect if user is not authenticated
     useEffect(() => {
-        const token = getToken();
-        if (!token || !user) {
+        if (!getToken() || !user) {
             console.warn("❌ No token or user found! Redirecting to login...");
-            if (window.location.pathname !== "/login") {
-                navigate("/login");
-            }
+            navigate("/login");
         }
     }, [user, navigate]);
 
-    // ✅ Handle expired token (redirect to login)
-    const handleUnauthorized = () => {
-        console.error("❌ Invalid or expired token! Logging out...");
-        localStorage.removeItem("token");  
-        navigate("/login"); 
+    // ✅ Refresh Token Function
+    const refreshAccessToken = async () => {
+        try {
+            console.log("🔄 Refreshing access token...");
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/refresh-token`, {
+                method: "POST",
+                credentials: "include"
+            });
+
+            const data = await response.json();
+            if (response.ok && data.accessToken) {
+                console.log("✅ New Access Token:", data.accessToken);
+                localStorage.setItem("token", data.accessToken);
+                setToken(data.accessToken);
+                return data.accessToken;
+            } else {
+                console.error("❌ Failed to refresh access token", data);
+                navigate("/login"); // Redirect to login on failure
+            }
+        } catch (error) {
+            console.error("❌ Error refreshing token:", error);
+            navigate("/login");
+        }
     };
 
-    // ✅ Fetch Chat History
+    // ✅ Fetch Chat History (with Retry)
+// ✅ Fetch Chat History (with Retry)
+const fetchChatHistory = async () => {
+    const token = getToken();
+
+    
+        try {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/chatbot/history`, {
+                method: "GET",
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+    
+            if (response.status === 401) {  
+                console.warn("❌ Token expired. Attempting refresh...");
+                const newToken = await refreshAccessToken();
+    
+                if (newToken) {
+                    return fetchChatHistory(); // Retry with new token
+                }
+                return; // If refresh fails, exit
+            }
+    
+            const data = await response.json();
+            if (!response.ok) {
+                console.error("Error fetching chat history:", data.error);
+                return;
+            }
+    
+            setMessages(data.messages);
+        } catch (error) {
+            console.error("❌ Network error while fetching chat history:", error);
+        }
+    };
+    
+
     useEffect(() => {
-        const fetchChatHistory = async () => {
-            const token = getToken();
-            if (!token) return; // Prevent fetch if token is missing
-        
+        fetchChatHistory();
+    }, []);
+
+    // ✅ Send Message to Backend (with Retry)
+    const sendMessageToBackend = async (message, retries = 2, delay = 2000) => {
+        let token = getToken();
+        if (!token) {
+            navigate("/login");
+            return "You are not logged in!";
+        }
+
+        for (let attempt = 0; attempt <= retries; attempt++) {
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/chatbot/history`, {
-                    method: "GET",
-                    headers: { "Authorization": `Bearer ${token}` }
+                const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/chatbot/chat`, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ message })
                 });
 
-                if (response.status === 401) {  
-                    handleUnauthorized();
-                    return;
+                if (response.status === 401 && attempt < retries) {
+                    console.warn("⚠️ Token expired. Refreshing...");
+                    token = await refreshAccessToken();
+                    if (token) continue; // Retry with new token
+                    return "Session expired. Please log in again.";
                 }
 
                 const data = await response.json();
-                if (!response.ok) {
-                    console.error("Error fetching chat history:", data.error);
-                    return;
-                }
-
-                // ✅ Format chat history
-                const formattedMessages = data.messages.map((msg) => ({
-                  id: msg.id || Date.now() + Math.random(),  // ✅ Unique ID assignment
-                  sender: msg.role === "user" ? "user" : "bot",
-                  text: msg.content,
-                  time: new Date().toLocaleTimeString(),
-                }));
-
-                setMessages(formattedMessages);
+                return data.response || "I'm not sure how to respond.";
             } catch (error) {
-                console.error("❌ Network error while fetching chat history:", error);
+                console.error("❌ Network error:", error);
+                return "Network issue, please try again.";
             }
-        };
+        }
 
-        fetchChatHistory();
-    }, []);  // ✅ Only fetch once on mount
-
-    // ✅ Send Message Function
-    // const sendMessageToBackend = async (message) => {
-    //     const token = getToken();
-    //     if (!token) {
-    //         handleUnauthorized();
-    //         return "You are not logged in!";
-    //     }
-
-    //     try {
-    //         const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/chatbot/chat`, {
-    //             method: "POST",
-    //             headers: {
-    //                 "Authorization": `Bearer ${token}`, 
-    //                 "Content-Type": "application/json"
-    //             },
-    //             body: JSON.stringify({ message })
-    //         });
-
-    //         if (response.status === 401) {  
-    //             handleUnauthorized();
-    //             return "Session expired. Please log in again.";
-    //         }
-
-    //         const data = await response.json();
-    //         return data.response || "I'm not sure how to respond.";
-    //     } catch (error) {
-    //         console.error("❌ Network error:", error);
-    //         return "Network issue, please try again.";
-    //     }
-    // };
-
-    const sendMessageToBackend = async (message, retries = 3, delay = 2000) => {
-      const token = getToken();
-      if (!token) {
-          handleUnauthorized();
-          return "You are not logged in!";
-      }
-  
-      for (let attempt = 0; attempt < retries; attempt++) {
-          try {
-              const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/chatbot/chat`, {
-                  method: "POST",
-                  headers: {
-                      "Authorization": `Bearer ${token}`, 
-                      "Content-Type": "application/json"
-                  },
-                  body: JSON.stringify({ message })
-              });
-  
-              const data = await response.json();
-              
-              // Handle overloaded API case
-              if (data.error && data.error_type === "overloaded") {
-                  console.warn(`⚠️ Hugging Face API overloaded. Retrying in ${delay}ms...`);
-                  await new Promise((resolve) => setTimeout(resolve, delay));
-                  delay *= 2;
-                  continue;
-              }
-  
-              // ✅ Extract AI response and clean unnecessary prefixes (like "User: AI:")
-              const aiResponse = data.generated_text
-                  ? data.generated_text.replace(/User:.*\n|AI:\s?/g, "").trim()
-                  : "I'm not sure how to respond.";
-  
-              return aiResponse;
-          } catch (error) {
-              console.error("❌ Network error:", error);
-              return "Network issue, please try again.";
-          }
-      }
-      return "Hugging Face API is currently overloaded. Try again later.";
-   };
-  
+        return "Hugging Face API is currently overloaded. Try again later.";
+    };
 
     // ✅ Handle Sending Messages
     const handleSendMessage = async () => {
-      if (newMessage.trim() === "") return;
-  
-      const userMessage = { id: Date.now(), sender: "user", text: newMessage, time: new Date().toLocaleTimeString() };
-  
-      setMessages((prevMessages) => [...prevMessages, userMessage]);
-  
-      setNewMessage(""); 
-      setIsTyping(true);
-  
-      try {
-          const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/chatbot/chat`, {
-              method: "POST",
-              headers: {
-                  "Authorization": `Bearer ${getToken()}`,
-                  "Content-Type": "application/json"
-              },
-              body: JSON.stringify({ message: newMessage })
-          });
-  
-          const data = await response.json();
-  
-          if (!response.ok || data.error) {
-              console.error("❌ Chatbot API Error:", data.error);
-              return;
-          }
-  
-          const botMessage = {
-              id: Date.now() + 1,
-              sender: "bot",
-              text: data.response,  // ✅ Ensure the correct response is used
-              time: new Date().toLocaleTimeString()
-          };
-  
-          setMessages((prevMessages) => [...prevMessages, botMessage]);
-      } catch (error) {
-          console.error("❌ Network Error:", error);
-      }
-  
-      setIsTyping(false);
+        if (newMessage.trim() === "") return;
+
+        const userMessage = { id: Date.now(), sender: "user", text: newMessage, time: new Date().toLocaleTimeString() };
+        setMessages((prevMessages) => [...prevMessages, userMessage]);
+
+        setNewMessage("");
+        setIsTyping(true);
+
+        const botResponse = await sendMessageToBackend(newMessage);
+        const botMessage = { id: Date.now() + 1, sender: "bot", text: botResponse, time: new Date().toLocaleTimeString() };
+
+        setMessages((prevMessages) => [...prevMessages, botMessage]);
+        setIsTyping(false);
     };
-  
-    // const handleSendMessage = async () => {
-    //     if (newMessage.trim() === "") return;
-
-    //     setMessages((prevMessages) => [
-    //         ...prevMessages,
-    //         { id: Date.now() + Math.random(), sender: "user", text: newMessage, time: new Date().toLocaleTimeString() }
-    //     ]);
-
-    //     setNewMessage(""); 
-    //     setIsTyping(true);
-
-    //     const botResponse = await sendMessageToBackend(newMessage);
-    //     setMessages((prevMessages) => [
-    //         ...prevMessages,
-    //         { id: Date.now() + Math.random(), sender: "bot", text: botResponse, time: new Date().toLocaleTimeString() }
-    //     ]);
-
-    //     setIsTyping(false);
-    // };
 
     // ✅ Auto-scroll to latest message
     useEffect(() => {
@@ -223,7 +160,7 @@ const Chat = () => {
 
                 {/* Chat Messages */}
                 <div className="h-80 overflow-y-auto border p-3 rounded-lg bg-gray-100 text-left">
-                  {messages.map((msg, index) => (
+                    {messages.map((msg, index) => (
                         <div key={msg.id || `message-${index}`} className={msg.sender === "user" ? "user-message" : "bot-message"}>
                             <div className={`p-3 rounded-lg mb-2 ${msg.sender === "user" ? "bg-blue-500 text-white" : "bg-gray-300 text-black"}`}>
                                 <span className="text-xs font-light block">{msg.time}</span>
