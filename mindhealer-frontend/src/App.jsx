@@ -34,6 +34,7 @@ import Signup from "./pages/Signup";  // ✅ Import Signup Page
 import Login from "./pages/Login";    // ✅ Import Login Page
 import ProtectedRoute from "./components/ProtectedRoute"; // ✅ Import Protected Route
 import { AuthProvider } from "./context/AuthContext"; // ✅ Import Auth Context
+import Profile from "./pages/Profile"; // Import Profile Page
 
 function App() {
   return (
@@ -57,6 +58,13 @@ function App() {
             <Therapists />
           </ProtectedRoute>
         }/>
+
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        }/>
+        
       </Routes>
     </AuthProvider>
   );

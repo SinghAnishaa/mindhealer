@@ -2,22 +2,29 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 const authMiddleware = (req, res, next) => {
-    // Get token from the request headers
-    const token = req.header('Authorization');
+    const authHeader = req.header('Authorization');
+    console.log("🔹 Incoming Auth Header:", authHeader);
 
-    // Check if no token
-    if (!token) {
-        return res.status(401).json({ message: 'Access denied. No token provided.' });
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Access denied. No valid token provided.' });
     }
 
     try {
-        // Verify token
-        // Remove "Bearer " prefix before verifying
-        const decoded = jwt.verify(token.split(' ')[1], process.env.JWT_SECRET);
-        req.user = decoded; // Attach user info to request object
-        next(); // Proceed to the next middleware/route
+        const token = authHeader.split(' ')[1];
+        console.log("🔍 Extracted Token:", token);
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        console.log("🔍 Decoded Token Data:", decoded);
+
+        if (!decoded.id) { 
+            return res.status(401).json({ error: "Invalid token: userId is missing" });
+        }
+
+        req.user = { _id: decoded.id };  
+        next();
     } catch (error) {
-        res.status(400).json({ message: 'Invalid token.' });
+        console.error('❌ Authentication Error:', error.message);
+        res.status(401).json({ error: 'Invalid or expired token.' });
     }
 };
 

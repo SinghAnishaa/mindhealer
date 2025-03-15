@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { AppBar, Toolbar, Typography, Box, Button, Modal, TextField } from "@mui/material";
+import { AppBar, Toolbar, Typography, Box, Button, Modal, TextField, Avatar, Menu, MenuItem } from "@mui/material";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { login, signup } from "../api/auth";
@@ -12,6 +12,10 @@ const Navbar = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSignup, setIsSignup] = useState(false); // Track if it's login or signup
   const [formData, setFormData] = useState({ email: "", password: "", username: "" });
+
+  // For Profile Dropdown
+  const [anchorEl, setAnchorEl] = useState(null);
+  const openMenu = Boolean(anchorEl);
 
   // Handle input change
   const handleChange = (e) => {
@@ -34,6 +38,15 @@ const Navbar = () => {
     } catch (err) {
       alert(`Authentication Failed: ${err.message}`);
     }
+  };
+
+  // Open and Close Profile Menu
+  const handleProfileClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleClose = () => {
+    setAnchorEl(null);
   };
 
   return (
@@ -65,12 +78,28 @@ const Navbar = () => {
             ))}
           </Box>
 
-          {/* Push Login/Signup/Logout Button to the Right */}
-          <Box className="ml-auto">
+          {/* Push Login/Signup/Logout/Profile Button to the Right */}
+          <Box className="ml-auto flex items-center space-x-4">
             {user ? (
-              <Button onClick={logout} variant="contained" color="error">
-                Logout
-              </Button>
+              <>
+                {/* Profile Dropdown */}
+                <Box className="flex items-center space-x-2 cursor-pointer" onClick={handleProfileClick}>
+                  <Avatar alt={user.username} src={user.profileImage || "/default-avatar.png"} />
+                  <Typography variant="subtitle1" className="text-white font-medium">
+                    Hello, {user.username}
+                  </Typography>
+                </Box>
+
+                {/* Profile Menu */}
+                <Menu anchorEl={anchorEl} open={openMenu} onClose={handleClose}>
+                  <MenuItem onClick={() => { navigate("/profile"); handleClose(); }}>
+                    View Profile
+                  </MenuItem>
+                  <MenuItem onClick={() => { logout(); handleClose(); }}>
+                    Logout
+                  </MenuItem>
+                </Menu>
+              </>
             ) : (
               <>
                 <Button onClick={() => { setIsAuthModalOpen(true); setIsSignup(false); }} variant="contained" color="warning" className="mr-2">
@@ -82,6 +111,7 @@ const Navbar = () => {
               </>
             )}
           </Box>
+
         </Toolbar>
       </AppBar>
 
