@@ -8,127 +8,98 @@ const Chat = () => {
     const [newMessage, setNewMessage] = useState("");
     const [isTyping, setIsTyping] = useState(false);
     const chatEndRef = useRef(null);
-    const { user, token, setToken } = useContext(AuthContext);
+    const { user, token } = useContext(AuthContext); // ✅ Ensure Correct Token Name
     const navigate = useNavigate();
 
-    // ✅ Get Token from LocalStorage
-    //const getToken = () => localStorage.getItem("token") || null;
+    // ✅ Get Access Token from LocalStorage
     const getToken = () => {
-        const token = localStorage.getItem("token");
-        if (!token || token === "undefined") {
-            console.error("❌ Token is missing or invalid.");
+        const accessToken = localStorage.getItem("accessToken"); // ✅ Ensure Correct Key
+        if (!accessToken || accessToken === "undefined") {
+            console.error("❌ AccessToken is missing or invalid.");
             return null;
         }
-        return token;
+        return accessToken;
     };
 
     // ✅ Redirect if user is not authenticated
     useEffect(() => {
-        if (!getToken() || !user) {
-            console.warn("❌ No token or user found! Redirecting to login...");
-            navigate("/login");
+        const token = localStorage.getItem("accessToken");
+        console.log("Current token:", token); // Debug: check if token exists
+        
+        if (!token || token === "undefined") {
+          console.warn("❌ No accessToken found! Redirecting to login...");
+          navigate("/login");
+          return;
         }
-    }, [user, navigate]);
+        
+        fetchChatHistory(); // Only fetch if token exists
+      }, [user, navigate]);
 
-    // ✅ Refresh Token Function
-    const refreshAccessToken = async () => {
-        try {
-            console.log("🔄 Refreshing access token...");
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/refresh-token`, {
-                method: "POST",
-                credentials: "include"
-            });
-
-            const data = await response.json();
-            if (response.ok && data.accessToken) {
-                console.log("✅ New Access Token:", data.accessToken);
-                localStorage.setItem("token", data.accessToken);
-                setToken(data.accessToken);
-                return data.accessToken;
-            } else {
-                console.error("❌ Failed to refresh access token", data);
-                navigate("/login"); // Redirect to login on failure
-            }
-        } catch (error) {
-            console.error("❌ Error refreshing token:", error);
-            navigate("/login");
-        }
-    };
-
-    // ✅ Fetch Chat History (with Retry)
-// ✅ Fetch Chat History (with Retry)
+    // ✅ Fetch Chat History
+   // In Chat.jsx, modify the fetchChatHistory function
 const fetchChatHistory = async () => {
-    const token = getToken();
-
+  const token = localStorage.getItem("accessToken");
+  if (!token) return;
+  
+  try {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/chatbot/history`, {
+      method: "GET",
+      headers: { 
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
     
-        try {
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/chatbot/history`, {
-                method: "GET",
-                headers: { "Authorization": `Bearer ${token}` }
-            });
+    if (response.status === 401) {
+      console.error("❌ Unauthorized: Token may be expired");
+      navigate("/login");
+      return;
+    }
     
-            if (response.status === 401) {  
-                console.warn("❌ Token expired. Attempting refresh...");
-                const newToken = await refreshAccessToken();
+    if (!response.ok) {
+      console.error("❌ Failed to fetch chat history:", response.status);
+      return;
+    }
     
-                if (newToken) {
-                    return fetchChatHistory(); // Retry with new token
-                }
-                return; // If refresh fails, exit
-            }
-    
-            const data = await response.json();
-            if (!response.ok) {
-                console.error("Error fetching chat history:", data.error);
-                return;
-            }
-    
-            setMessages(data.messages);
-        } catch (error) {
-            console.error("❌ Network error while fetching chat history:", error);
-        }
-    };
-    
+    const data = await response.json();
+    setMessages(data.messages || []);
+  } catch (error) {
+    console.error("❌ Network error while fetching chat history:", error);
+  }
+};
 
     useEffect(() => {
         fetchChatHistory();
     }, []);
 
-    // ✅ Send Message to Backend (with Retry)
-    const sendMessageToBackend = async (message, retries = 2, delay = 2000) => {
-        let token = getToken();
-        if (!token) {
+    // ✅ Send Message to Backend
+    const sendMessageToBackend = async (message) => {
+        const accessToken = getToken();
+        if (!accessToken) {
             navigate("/login");
             return "You are not logged in!";
         }
 
-        for (let attempt = 0; attempt <= retries; attempt++) {
-            try {
-                const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/chatbot/chat`, {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${token}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ message })
-                });
+        try {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/chatbot/chat`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${accessToken}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ message })
+            });
 
-                if (response.status === 401 && attempt < retries) {
-                    console.warn("⚠️ Token expired. Refreshing...");
-                    token = await refreshAccessToken();
-                    if (token) continue; // Retry with new token
-                    return "Session expired. Please log in again.";
-                }
-
-                const data = await response.json();
-                return data.response || "I'm not sure how to respond.";
-            } catch (error) {
-                console.error("❌ Network error:", error);
-                return "Network issue, please try again.";
+            if (!response.ok) {
+                return "Failed to send message.";
             }
-        }
 
-        return "Hugging Face API is currently overloaded. Try again later.";
+            const data = await response.json();
+            return data.response || "I'm not sure how to respond.";
+        } catch (error) {
+            console.error("❌ Network error:", error);
+            return "Network issue, please try again.";
+        }
     };
 
     // ✅ Handle Sending Messages

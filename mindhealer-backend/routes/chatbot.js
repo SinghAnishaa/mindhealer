@@ -25,7 +25,7 @@ const fetchWithRetry = async (message, retries = 3, delay = 2000) => {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    inputs: `User: ${message}\nAI:`,
+                    inputs: `User: ${message}\nAI:`, // Add backticks
                     parameters: { max_new_tokens: 50 }
                 })
             });

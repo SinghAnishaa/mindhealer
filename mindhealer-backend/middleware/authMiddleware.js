@@ -1,6 +1,5 @@
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
-const User = require("../models/User");
 
 const authMiddleware = async (req, res, next) => {
     const authHeader = req.header("Authorization");
@@ -30,8 +29,8 @@ const authMiddleware = async (req, res, next) => {
         console.error("❌ Access Token Error:", error.message);
 
         if (error.name === "TokenExpiredError") {
-            console.warn("⚠️ Token expired. Requesting new access token.");
-            return res.status(401).json({ error: "Token expired", refresh: true });
+            console.warn("⚠️ Token expired.");
+            return res.status(401).json({ error: "Token expired" });
         }
 
         return res.status(401).json({ error: "Invalid or expired token." });

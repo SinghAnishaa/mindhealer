@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 // Create Auth Context
 export const AuthContext = createContext();
@@ -13,124 +14,71 @@ export const AuthProvider = ({ children }) => {
         }
     });
 
-    const [token, setToken] = useState(localStorage.getItem("token") || ""); // ✅ Changed "authToken" to "token"
+    const [token, setToken] = useState(localStorage.getItem("accessToken") || ""); // ✅ Use Correct Key
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
-    // ✅ Function to fetch a new access token
-    const refreshAccessToken = async () => {
-        try {
-            console.log("🔄 Refreshing access token...");
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/refresh-token`, {
-                method: "POST",
-                credentials: "include",  // 🔥 Ensures cookies are sent
-            });
-    
-            const data = await response.json();
-            if (response.ok && data.accessToken) {
-                console.log("✅ New Access Token:", data.accessToken);
-                localStorage.setItem("token", data.accessToken);
-                setToken(data.accessToken);
-                return data.accessToken;
-            } else {
-                console.error("❌ Failed to refresh access token", data);
-                logout(); // If refresh fails, log out the user
-            }
-        } catch (error) {
-            console.error("❌ Error refreshing token:", error);
-            logout();
-        }
-    };
-    
-    
+    // ✅ Restore user session from localStorage
+    // Add loading state update
+    // In authContext.jsx, modify the useEffect for token validation
+    // Add loading state update
+    useEffect(() => {
+        setLoading(true); // Set loading initially
         
-
-    useEffect(() => {
-        const storedToken = localStorage.getItem("token");
-        const storedUser = localStorage.getItem("user");
-
-        if (storedToken && storedUser) {
-            console.log("✅ Restoring session...");
-            setToken(storedToken);
-            setUser(JSON.parse(storedUser));
+        if (!token) {
+            console.warn("❌ No token found. Redirecting to login...");
+            navigate("/login");
+            setLoading(false); // Set loading to false when no token
+            return;
         }
 
-        setLoading(false);
-    }, []);
-
-    useEffect(() => {
-        if (token) {
-            axios.get("http://localhost:5050/api/auth/user", {
-                headers: { Authorization: `Bearer ${token}` }
-            })
-            .then(res => {
-                console.log("✅ Authenticated user:", res.data);
-                setUser(res.data);
-            })
-            .catch(async (err) => {
-                console.error("❌ Auth Check Failed:", err.response?.status);
-
-                if (err.response?.status === 401) {
-                    console.log("🔄 Attempting token refresh...");
-                    const newToken = await refreshAccessToken();
-                    
-                    if (newToken) {
-                        axios.get("http://localhost:5050/api/auth/user", {
-                            headers: { Authorization: `Bearer ${newToken}` }
-                        })
-                        .then(res => {
-                            console.log("✅ Successfully refreshed token and authenticated:", res.data);
-                            setUser(res.data);
-                        })
-                        .catch(() => logout());
-                    } else {
-                        logout();
-                    }
-                }
-            });
-        }
+        axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/auth/user`, {
+            headers: { Authorization: `Bearer ${token}` }
+        })
+        .then(res => {
+            console.log("✅ Authenticated user:", res.data);
+            setUser(res.data);
+            setLoading(false); // Set loading to false on success
+        })
+        .catch(() => {
+            console.error("❌ Auth Check Failed. Logging out...");
+            logout();
+            setLoading(false); // Set loading to false on error
+        });
     }, [token]);
 
-    const login = async (userData, token) => {
-        console.log("🔹 Saving token:", token);
-        localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(userData));
-    
-        setToken(token);
-        setUser(userData);
-    
-        try {
-            // ✅ Fetch new access token using refresh token
-            const response = await fetch("http://localhost:5050/api/auth/refresh-token", {
-                method: "POST",
-                credentials: "include", // 🔥 Ensures cookies are sent
-            });
-    
-            const data = await response.json();
-            if (response.ok && data.accessToken) {
-                console.log("✅ New Access Token Received:", data.accessToken);
-                localStorage.setItem("token", data.accessToken);
-                setToken(data.accessToken);
-            } else {
-                console.error("❌ Failed to refresh access token", data);
-            }
-        } catch (error) {
-            console.error("❌ Error refreshing token:", error);
+    // ✅ Login function to store accessToken and user
+    const login = async (userData, accessToken) => {
+        if (!accessToken || !userData) {
+            console.error("❌ Invalid login data. No accessToken or user.");
+            return;
         }
-    };
-    
-    
 
+        console.log("✅ Received Access Token:", accessToken);
+
+        localStorage.setItem("accessToken", accessToken); // ✅ Use Correct Key
+        localStorage.setItem("user", JSON.stringify(userData));
+
+        setToken(accessToken);
+        setUser(userData);
+
+        console.log("✅ Token stored successfully:", localStorage.getItem("accessToken"));
+    };
+
+    // ✅ Logout function to clear token and user
     const logout = () => {
         console.log("🔹 Logging out user");
-        localStorage.removeItem("token");
+        localStorage.removeItem("accessToken"); // ✅ Use Correct Key
         localStorage.removeItem("user");
 
         setToken("");
         setUser(null);
 
-        axios.post("http://localhost:5050/api/auth/logout", {}, { withCredentials: true })
+        axios.post(`${import.meta.env.VITE_API_BASE_URL}/api/auth/logout`, {}, { withCredentials: true })
             .then(() => console.log("✅ Logged out from server"))
             .catch((err) => console.error("❌ Error during logout:", err));
+
+        navigate("/login");
     };
 
     return (

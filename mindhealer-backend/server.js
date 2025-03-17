@@ -21,9 +21,11 @@ app.use((req, res, next) => {
 // ✅ Middleware
 app.use(express.json());
 app.use(cookieParser());
-app.use(cors({ 
-    credentials: true, 
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],  // Allow frontend origin
+app.use(cors({
+    credentials: true,
+    origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
 // ✅ Serve Static Files (For Uploaded Images)
@@ -41,11 +43,6 @@ mongoose.connect(process.env.MONGO_URI, {
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/chatbot', chatbotRoutes); 
-
-// ✅ Add Missing Route to Fetch User Details (Prevents 404 Error)
-app.get('/api/auth/user', (req, res) => {
-    res.json({ message: "User route is working, but you need authentication logic here." });
-});
 
 // ✅ Default Route
 app.get('/', (req, res) => {
