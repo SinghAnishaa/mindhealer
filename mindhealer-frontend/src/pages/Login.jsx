@@ -13,42 +13,50 @@ const Login = () => {
         e.preventDefault();
         try {
             console.log("🔹 Attempting login with:", { email, password });
-    
+
             const res = await loginAPI({ email, password });
-    
-            console.log("🚀 Login Response:", res);  // ✅ Debugging: Check the full response
-    
-            if (!res || !res.token) {
-                throw new Error("❌ No token received from backend!");
+
+            console.log("🚀 Login Response:", res);
+
+            if (!res || !res.authToken) {
+                throw new Error("❌ No authToken received from backend!");
             }
-    
-            console.log("🔹 Storing token in localStorage:", res.token);
-    
-            // ✅ Store token and user in localStorage (Changed "authToken" → "token")
-            localStorage.setItem("token", res.token);
-            localStorage.setItem("user", JSON.stringify(res.user));
-    
-            // ✅ Verify if token was stored successfully
-            const storedToken = localStorage.getItem("token");
+
+            console.log("🔹 Storing authToken in localStorage:", res.authToken);
+
+            // ✅ Store authToken and user in localStorage with try-catch
+            try {
+                localStorage.setItem("authToken", res.authToken);
+                localStorage.setItem("user", JSON.stringify(res.user));
+            } catch (storageError) {
+                throw new Error("❌ LocalStorage write failed! Possibly due to private browsing.");
+            }
+
+            // ✅ Verify if authToken was stored successfully
+            const storedAuthToken = localStorage.getItem("authToken");
             const storedUser = localStorage.getItem("user");
-    
-            console.log("🔍 Checking stored token:", storedToken);
+
+            console.log("🔍 Checking stored authToken:", storedAuthToken);
             console.log("🔍 Checking stored user:", storedUser);
-    
-            if (!storedToken || !storedUser) {
-                throw new Error("❌ Token storage failed!");
+
+            if (!storedAuthToken || !storedUser) {
+                throw new Error("❌ authToken storage failed!");
             }
-    
+
             // ✅ Use AuthContext to update state
-            await login(res.user, res.token);
-    
+            if (typeof login === "function") {
+                await login(res.user, res.authToken); // Ensure it’s awaited if async
+            } else {
+                console.warn("⚠️ AuthContext login function is not defined!");
+            }
+
             console.log("✅ User authenticated successfully! Redirecting...");
-            
+
             // ✅ Add slight delay to ensure localStorage updates before navigating
             setTimeout(() => navigate("/chat"), 500);
         } catch (err) {
-            console.error("❌ Login Error:", err.message);
-            alert("Authentication Failed: " + err.message);
+            console.error("❌ Login Error:", err.message || err);
+            alert("Authentication Failed: " + (err.message || "Unknown error"));
         }
     };          
 

@@ -24,6 +24,21 @@ const Profile = () => {
         }
     }, [user]);
 
+    // ✅ Helper function to safely retrieve authToken
+    const getAuthToken = () => {
+        try {
+            const storedAuthToken = localStorage.getItem("authToken");
+            if (!storedAuthToken || storedAuthToken === "undefined") {
+                console.warn("❌ No valid authToken found.");
+                return null;
+            }
+            return storedAuthToken;
+        } catch (error) {
+            console.error("❌ Error accessing localStorage:", error);
+            return null;
+        }
+    };
+
     // Handle Input Changes
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -36,9 +51,12 @@ const Profile = () => {
         }
     };
 
-    // Handle Profile Image Upload
+    // ✅ Handle Profile Image Upload
     const handleImageUpload = async () => {
         if (!selectedFile) return alert("Please select an image.");
+
+        const authToken = getAuthToken();
+        if (!authToken) return alert("❌ Authentication error. Please log in again.");
 
         const imageData = new FormData();
         imageData.append("profileImage", selectedFile);
@@ -47,7 +65,7 @@ const Profile = () => {
             const res = await axios.put(
                 "http://localhost:5050/api/auth/update-profile",
                 imageData,
-                { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+                { headers: { Authorization: `Bearer ${authToken}` } } // ✅ Use authToken
             );
             setUser({ ...user, profile: { ...user.profile, avatar: res.data.user.profile.avatar } });
             alert("Profile image updated!");
@@ -57,11 +75,14 @@ const Profile = () => {
         }
     };
 
-    // Handle Profile Update (Bio, Age, Location)
+    // ✅ Handle Profile Update (Bio, Age, Location)
     const handleUpdateProfile = async () => {
+        const authToken = getAuthToken();
+        if (!authToken) return alert("❌ Authentication error. Please log in again.");
+
         try {
             const res = await axios.put("http://localhost:5050/api/auth/update-profile", formData, {
-                headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+                headers: { Authorization: `Bearer ${authToken}` }, // ✅ Use authToken
             });
             setUser(res.data.user);
             alert("Profile Updated Successfully!");

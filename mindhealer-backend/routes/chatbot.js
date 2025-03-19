@@ -9,12 +9,12 @@ const router = express.Router();
 const HF_API_URL = "https://api-inference.huggingface.co/models/facebook/blenderbot-400M-distill";
 const HF_API_KEY = process.env.HUGGINGFACE_API_KEY;
 
-// 🔹 Rate limiting to prevent spam (5 requests per minute)
+// Rate limiting to prevent spam (5 requests per minute)
 const userRequestCounts = new Map();
 const RATE_LIMIT = 5; // Max 5 requests per user per minute
 const TIME_WINDOW = 60 * 1000; // 1 minute
 
-// 🔹 Helper function: Retry Hugging Face API calls with Exponential Backoff
+// Helper function: Retry Hugging Face API calls with Exponential Backoff
 const fetchWithRetry = async (message, retries = 3, delay = 2000) => {
     for (let attempt = 0; attempt < retries; attempt++) {
         try {
@@ -40,22 +40,22 @@ const fetchWithRetry = async (message, retries = 3, delay = 2000) => {
                     await new Promise(resolve => setTimeout(resolve, delay));
                     delay *= 2; // Exponential backoff
                 } else {
-                    console.error("❌ Hugging Face API Error:", data.error);
+                    console.error("Hugging Face API Error:", data.error);
                     return { error: "Hugging Face API Error", details: data.error };
                 }
             } catch (jsonError) {
-                console.error("❌ Invalid JSON response from Hugging Face API:", text);
+                console.error("Invalid JSON response from Hugging Face API:", text);
                 return { error: "Invalid JSON response", details: text };
             }
         } catch (error) {
-            console.error("❌ API request failed:", error);
+            console.error("API request failed:", error);
             return { error: "Network error", details: error.message };
         }
     }
     return { error: "Hugging Face API is overloaded or unavailable. Try again later." };
 };
 
-// 🔹 Chat Route: Handle user messages & call Hugging Face API
+// Chat Route: Handle user messages & call Hugging Face API
 router.post("/chat", authMiddleware, async (req, res) => {
     try {
         const { message } = req.body;
@@ -63,11 +63,11 @@ router.post("/chat", authMiddleware, async (req, res) => {
 
         if (!message) return res.status(400).json({ error: "Message is required" });
         if (!userId) {
-            console.error("❌ Missing userId:", req.user);
+            console.error("Missing userId:", req.user);
             return res.status(401).json({ error: "Unauthorized: userId is missing" });
         }
 
-        // ✅ Implement Rate Limiting
+        // Implement Rate Limiting
         const now = Date.now();
         const requestHistory = userRequestCounts.get(userId) || [];
         const recentRequests = requestHistory.filter(ts => now - ts < TIME_WINDOW);
@@ -78,14 +78,14 @@ router.post("/chat", authMiddleware, async (req, res) => {
 
         userRequestCounts.set(userId, [...recentRequests, now]);
 
-        // ✅ Fetch or create chat history
+        // Fetch or create chat history
         let chat = await Chat.findOne({ userId });
         if (!chat) chat = new Chat({ userId, messages: [] });
 
-        // ✅ Save user message
+        // Save user message
         chat.messages.push({ role: "user", content: message });
 
-        // ✅ Call Hugging Face API with retry
+        // Call Hugging Face API with retry
         console.log("🚀 Sending request to Hugging Face API...");
         const hfResponse = await fetchWithRetry(message);
 
@@ -93,23 +93,23 @@ router.post("/chat", authMiddleware, async (req, res) => {
             return res.status(500).json({ error: hfResponse.error, details: hfResponse.details });
         }
 
-        // ✅ Extract chatbot response safely
+        // Extract chatbot response safely
         const botReply = hfResponse[0]?.generated_text?.split("AI:")?.pop()?.trim() || "I'm not sure how to respond.";
 
-        // ✅ Store chatbot response in DB
+        // Store chatbot response in DB
         chat.messages.push({ role: "assistant", content: botReply });
         await chat.save();
 
-        // ✅ Return response
+        // Return response
         res.json({ response: botReply });
 
     } catch (error) {
-        console.error("❌ Chatbot Error:", error);
+        console.error("Chatbot Error:", error);
         res.status(500).json({ error: "Server error", details: error.message });
     }
 });
 
-// 🔹 Retrieve Chat History for a User
+// Retrieve Chat History for a User
 router.get("/history", authMiddleware, async (req, res) => {
     try {
         const userId = req.user._id;

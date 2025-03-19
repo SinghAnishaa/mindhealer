@@ -9,11 +9,11 @@ require('dotenv').config();
 
 const router = express.Router();
 
-// ✅ Helper Function to Generate Access Token
-const generateAccessToken = (user) => {
-    return jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "15m" }); // Short-lived
+// Helper Function to Generate Auth Token
+const generateAuthToken = (user) => {
+    return jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "15m" }); // Short-lived token
 };
-    
+
 // Ensure `uploads` directory exists
 const uploadDir = 'uploads';
 if (!fs.existsSync(uploadDir)) {
@@ -27,7 +27,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// ✅ **Signup Route**
+// **Login Route**
 router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -38,14 +38,14 @@ router.post('/login', async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
-        // ✅ Generate JWT token
-        const accessToken = generateAccessToken(user);
+        // Generate JWT authToken
+        const authToken = generateAuthToken(user);
 
-        console.log("✅ Sending Token:", accessToken); // Debugging Line
+        console.log(" Sending Auth Token:", authToken); // Debugging Line
 
         res.status(200).json({
             message: 'Login successful!',
-            accessToken,  // Ensure this is being sent
+            authToken: authToken || "",  // Ensure this is being sent
             user: {
                 id: user._id,
                 username: user.username,
@@ -58,13 +58,12 @@ router.post('/login', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Login Error:', error);
+        console.error('Login Error:', error);
         res.status(500).json({ message: 'Server error', error: error.message });
     }
 });
 
-
-// ✅ **Logout Route (Removed Refresh Token Handling)**
+// **Logout Route**
 router.post('/logout', async (req, res) => {
     try {
         res.json({ message: "Logout successful!" });
@@ -73,7 +72,7 @@ router.post('/logout', async (req, res) => {
     }
 });
 
-// ✅ **Get User Details (Protected)**
+// **Get User Details (Protected)**
 router.get('/user', authMiddleware, async (req, res) => {
     try {
         const user = await User.findById(req.user.id).select("-password");
@@ -84,7 +83,7 @@ router.get('/user', authMiddleware, async (req, res) => {
     }
 });
 
-// ✅ **Upload Profile Image (Protected)**
+// **Upload Profile Image (Protected)**
 router.post('/upload-profile-image', authMiddleware, upload.single('profileImage'), async (req, res) => {
     try {
         if (!req.file) return res.status(400).json({ message: "No image uploaded." });
@@ -103,7 +102,7 @@ router.post('/upload-profile-image', authMiddleware, upload.single('profileImage
     }
 });
 
-// ✅ **Update User Profile (Protected)**
+// **Update User Profile (Protected)**
 router.put('/update-profile', authMiddleware, upload.single('profileImage'), async (req, res) => {
     try {
         const { bio, age, location } = req.body;
@@ -125,7 +124,7 @@ router.put('/update-profile', authMiddleware, upload.single('profileImage'), asy
     }
 });
 
-// ✅ **Protected Route Example**
+// **Protected Route Example**
 router.get('/protected', authMiddleware, (req, res) => {
     res.json({ message: `Welcome, ${req.user.id}! You have access to this protected route.` });
 });
