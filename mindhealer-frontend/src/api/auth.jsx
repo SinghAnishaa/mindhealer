@@ -1,3 +1,5 @@
+// // making critical chatbot fixes
+
 import axios from 'axios';
 
 const API_URL = "http://localhost:5050/api/auth"; // Backend URL

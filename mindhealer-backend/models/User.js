@@ -1,3 +1,5 @@
+// making critical chatbot fixes
+
 const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
@@ -9,7 +11,8 @@ const UserSchema = new mongoose.Schema({
         avatar: { type: String, default: "" }, // URL to profile picture
         age: { type: Number, default: null },
         location: { type: String, default: "" }
-    }
+    },
+    
 });
 
 module.exports = mongoose.model('User', UserSchema);
