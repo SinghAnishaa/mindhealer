@@ -43,7 +43,7 @@ const Chat = () => {
     }, [authToken, navigate]);
 
     useEffect(() => {
-        document.body.style.background = "url('/assets/chat-background.webp') no-repeat center center/cover";
+        document.body.style.background = "url('/src/assets/chat-background.webp') no-repeat center center/cover";
         document.body.style.animation = "backgroundFade 10s infinite alternate ease-in-out";
     }, []);
 
@@ -108,75 +108,79 @@ const Chat = () => {
     };
 
     const handleSendMessage = async () => {
-        if (newMessage.trim() === "") return;
-
+        const trimmedMessage = newMessage.trim(); // ✅ Trim input early
+        if (!trimmedMessage) return; // ✅ Prevent empty messages
+    
         const token = authToken || localStorage.getItem("authToken");
         if (!token) {
             navigate("/login");
             return;
         }
-
+    
         const userMessage = { 
             id: Date.now(), 
             sender: "user", 
-            text: newMessage, 
+            text: trimmedMessage,  // ✅ Store only trimmed message
             time: new Date().toLocaleTimeString() 
         };
-
+    
         setMessages(prev => [...prev, userMessage]);
         setNewMessage("");
         setIsTyping(true);
-
+    
         try {
-            const botResponse = await sendMessageToBackend(newMessage, token);
-
+            const botResponse = await sendMessageToBackend(trimmedMessage, token);
+            
             if (botResponse === "Session expired") {
                 navigate("/login");
                 return;
             }
-
-            if (!botResponse || botResponse.trim() === "") {
+    
+            const trimmedBotResponse = botResponse?.trim(); // ✅ Ensure valid bot response
+    
+            if (!trimmedBotResponse) {
                 console.warn("❌ Empty bot response, skipping update.");
                 return;
             }
-
+    
             const botMessage = { 
                 id: Date.now() + 1, 
                 sender: "bot", 
-                text: botResponse, 
+                text: trimmedBotResponse, // ✅ Store only trimmed response
                 time: new Date().toLocaleTimeString() 
             };
+    
             setMessages(prev => [...prev, botMessage]);
         } catch (error) {
-            console.error("Error sending message:", error);
+            console.error("❌ Error sending message:", error);
         } finally {
             setIsTyping(false);
         }
     };
-
+    
+    // ✅ Auto-scroll when messages update
     useEffect(() => {
         chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+    }, [messages]);    
 
     return (
         <div className="chat-layout">
             <div className="chat-box">
-                <h2 className="chat-title">💬 MindHealer Chat</h2>
+                <h2 className="chat-title">MindHealer Chat</h2>
                 <div className="chat-messages">
-                    {messages.length === 0 ? (
-                        <div className="empty-chat">
-                            <p>Welcome to MindHealer Chat!</p>
-                            <p>Start a conversation to receive support.</p>
-                        </div>
+                    {messages && messages.length > 0 ? (
+                        messages
+                            .filter(msg => msg.text && msg.text.trim() !== "") // ✅ Skip empty messages
+                            .map((msg, index) => (
+                                <div key={index} className={msg.sender === "user" ? "user-message" : "bot-message"}>
+                                    <span className="message-time">{msg.time}</span>
+                                    {msg.text}
+                                </div>
+                            ))
                     ) : (
-                        messages.map((msg, index) => (
-                            <div key={index} className={msg.sender === "user" ? "user-message" : "bot-message"}>
-                                <span className="message-time">{msg.time}</span>
-                                {msg.text}
-                            </div>
-                        ))
+                        <p className="no-messages">Start a conversation to receive support.</p>
                     )}
-                    <div ref={chatEndRef} />
+                    <div ref={chatEndRef} style={{ display: "none" }} />
                 </div>
                 <div className="chat-input">
                     <input
@@ -194,7 +198,7 @@ const Chat = () => {
             </div>
 
             <div className="quote-box">
-                <h2>💡 Mental Health Tip</h2>
+                <h2>Mental Health Tip</h2>
                 <p>{quote}</p>
             </div>
         </div>

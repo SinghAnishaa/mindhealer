@@ -11,7 +11,7 @@
     align-items: center;
     height: 100vh;
     padding: 20px;
-    background: url("/assets/chat-background.webp") no-repeat center center/cover;
+    background: url("/src/assets/chat-background.webp") no-repeat center center/cover;
     animation: backgroundFade 10s infinite alternate ease-in-out;
 }
 
@@ -26,53 +26,94 @@
 
 .chat-box {
     flex: 0.6;
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.1); /* Semi-transparent white */
     padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+    border-radius: 15px;
+    box-shadow: 0px 6px 20px rgba(0, 0, 0, 0.3);
     display: flex;
     flex-direction: column;
     height: 80vh;
     overflow: hidden;
+    backdrop-filter: blur(15px); /* Slightly stronger frosted effect */
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transition: background 0.3s ease-in-out;
 }
 
+/* Remove Empty Chat Placeholder */
+.no-messages-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+}
+
+
+
 .chat-title {
-    font-size: 22px;
+    font-size: 26px;
     font-weight: bold;
     text-align: center;
-    color: #007bff;
-    margin-bottom: 10px;
+    color: #77e0ff; /* Neon Cyan */
+    text-shadow: 2px 2px 8px rgba(119, 224, 255, 0.8); /* Subtle glow */
+    margin-bottom: 12px;
+    letter-spacing: 1px;
 }
+
 
 .chat-messages {
     flex-grow: 1;
     overflow-y: auto;
     padding: 10px;
-    background: #f3f3f3;
+    background: none;
     border-radius: 10px;
+    scroll-behavior: smooth;
+    overscroll-behavior: contain;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
 }
+
+
+.empty-chat {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+
+
 
 .user-message {
     text-align: right;
-    background: #007bff;
-    color: white;
-    padding: 10px;
-    border-radius: 10px;
-    margin: 5px 0;
-    max-width: 70%;
+    background: linear-gradient(135deg, #b3a4ff, #8a77ff); /* Soft Lavender */
+    color: #ffffff;
+    padding: 12px;
+    border-radius: 18px 18px 4px 18px;
+    margin: 8px 0;
+    max-width: 65%;
     align-self: flex-end;
+    box-shadow: 0px 3px 8px rgba(179, 164, 255, 0.4);
 }
+
 
 .bot-message {
     text-align: left;
-    background: #e5e5e5;
-    color: black;
-    padding: 10px;
-    border-radius: 10px;
-    margin: 5px 0;
-    max-width: 70%;
+    background: linear-gradient(135deg, #d0b3ff, #a67aff); /* Pale Orchid */
+    color: #ffffff;
+    padding: 12px;
+    border-radius: 18px 18px 18px 4px;
+    margin: 8px 0;
+    max-width: 65%;
     align-self: flex-start;
+    box-shadow: 0px 3px 8px rgba(208, 179, 255, 0.3);
 }
+
+
+
 
 .message-time {
     font-size: 12px;
@@ -83,51 +124,82 @@
 
 .chat-input {
     display: flex;
-    padding: 10px;
-    background: white;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.1); /* Soft translucent */
     border-radius: 8px;
     align-items: center;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
 }
 
 .chat-input input {
     flex: 1;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
+    padding: 14px;
+    border: none;
+    border-radius: 6px;
     font-size: 16px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    outline: none;
+}
+
+.chat-input input::placeholder {
+    color: rgba(255, 255, 255, 0.6);
 }
 
 .chat-input button {
-    background-color: #007bff;
+    background-color: #1e88e5;
     color: white;
     border: none;
-    padding: 10px 15px;
+    padding: 12px 18px;
     margin-left: 10px;
-    border-radius: 5px;
+    border-radius: 8px;
     cursor: pointer;
+    transition: background 0.3s ease-in-out;
 }
 
+.chat-input button:hover {
+    background: #1565c0;
+}
+
+
+
 /* Quote Section */
+/* Softer Pastel Gradient for Mental Health Tip Box */
 .quote-box {
     flex: 0.35;
     text-align: center;
     color: white;
     padding: 20px;
-    font-size: 20px;
+    font-size: 18px;
     font-weight: bold;
-    background: rgba(0, 0, 0, 0.6);
+    background: linear-gradient(135deg, #e6cfff, #f8d7da, #fce8d5);
     border-radius: 12px;
-    transition: opacity 0.5s ease-in-out;
+    transition: opacity 0.5s ease-in-out, transform 0.3s;
+    box-shadow: 0px 3px 10px rgba(248, 215, 218, 0.3);
 }
 
+/* Remove hover glow effect */
+.quote-box:hover {
+    transform: scale(1.01);
+    box-shadow: 0px 4px 12px rgba(248, 215, 218, 0.2);
+}
+
+/* Title inside the box */
 .quote-box h2 {
-    font-size: 24px;
-    margin-bottom: 10px;
+    font-size: 22px;
+    margin-bottom: 8px;
+    color: #5a4a78;  /* Soft muted purple */
+    text-shadow: none; /* ❌ Removed glowing effect */
 }
 
+/* Text inside the tip */
 .quote-box p {
     font-style: italic;
+    color: rgba(90, 74, 120, 0.9); /* Soft grey-purple */
 }
+
+
 
 /* Empty Chat Placeholder */
 .empty-chat {
@@ -137,3 +209,5 @@
     color: #555;
     padding: 20px;
 }
+
+
