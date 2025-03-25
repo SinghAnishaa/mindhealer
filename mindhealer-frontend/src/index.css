@@ -66,3 +66,9 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+.custom-navbar {
+  background: url("/src/assets/plain-smooth-green-wall-texture_53876-129746.jpg") no-repeat center center/cover !important; 
+  height: 70px; /* Adjust height as needed */
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+}

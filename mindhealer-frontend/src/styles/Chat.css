@@ -5,6 +5,7 @@
 
 /* Updated Chatbot UI with Vibrant Background and Smooth Animations */
 
+/* Chat Layout - Removing Glow & Making It Softer */
 .chat-layout {
     display: flex;
     justify-content: space-between;
@@ -12,31 +13,33 @@
     height: 100vh;
     padding: 20px;
     background: url("/src/assets/chat-background.webp") no-repeat center center/cover;
-    animation: backgroundFade 10s infinite alternate ease-in-out;
+    animation: backgroundFade 12s infinite alternate ease-in-out;
+    backdrop-filter: blur(6px); /* ✅ Softer blur, removed glow */
 }
 
+/* 🌌 Subtle Background Animation (No Glow) */
 @keyframes backgroundFade {
     0% {
-        filter: brightness(1);
+        filter: brightness(0.9) contrast(1); /* ✅ Reduced brightness */
     }
     100% {
-        filter: brightness(1.2);
+        filter: brightness(1) contrast(1); /* ✅ No extreme brightness shift */
     }
 }
 
+/* Chat Box - Subtle Background (No Glow) */
 .chat-box {
     flex: 0.6;
-    background: rgba(255, 255, 255, 0.1); /* Semi-transparent white */
+    background: rgba(255, 255, 255, 0.05); /* ✅ Lighter transparency */
     padding: 20px;
     border-radius: 15px;
-    box-shadow: 0px 6px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15); /* ✅ Softer shadows */
     display: flex;
     flex-direction: column;
     height: 80vh;
     overflow: hidden;
-    backdrop-filter: blur(15px); /* Slightly stronger frosted effect */
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    transition: background 0.3s ease-in-out;
+    backdrop-filter: blur(10px); /* ✅ Gentle blur instead of glow */
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 /* Remove Empty Chat Placeholder */

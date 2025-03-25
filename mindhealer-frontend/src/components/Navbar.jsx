@@ -51,7 +51,7 @@ const Navbar = () => {
 
   return (
     <>
-      <AppBar position="fixed" className="bg-blue-600 shadow-md w-full top-0 z-50">
+      <AppBar position="fixed" className="custom-navbar">
         <Toolbar className="flex items-center w-full px-12 py-3">
           
           {/* Logo / App Name */}
