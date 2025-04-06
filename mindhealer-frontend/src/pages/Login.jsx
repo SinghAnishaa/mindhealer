@@ -45,7 +45,8 @@ const Login = () => {
 
             // ✅ Use AuthContext to update state
             if (typeof login === "function") {
-                await login(res.user, res.authToken); // Ensure it’s awaited if async
+                await login({ user: res.user, authToken: res.authToken });
+
             } else {
                 console.warn("⚠️ AuthContext login function is not defined!");
             }

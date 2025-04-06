@@ -49,3 +49,22 @@ export const login = async (userData) => {
         throw new Error(error.response?.data?.message || "Login failed. Please try again.");
     }
 };
+
+export const getUser = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) throw new Error("No authToken found.");
+  
+      const response = await axios.get(`${API_URL}/user`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+  
+      return response.data;
+    } catch (error) {
+      console.error("❌ Get User Error:", error.response?.data || error.message);
+      throw new Error(error.response?.data?.message || "Failed to fetch user.");
+    }
+  };
+  

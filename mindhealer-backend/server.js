@@ -9,6 +9,7 @@ const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/auth');
 const profileRoutes = require('./routes/profile');
 const chatbotRoutes = require('./routes/chatbot'); 
+const dashboardRoutes = require('./routes/dashboard');
 
 const app = express();
 
@@ -43,6 +44,7 @@ mongoose.connect(process.env.MONGO_URI, {
 app.use('/api/auth', authRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/chatbot', chatbotRoutes); 
+app.use('/api/dashboard', dashboardRoutes);
 
 // ✅ Default Route
 app.get('/', (req, res) => {

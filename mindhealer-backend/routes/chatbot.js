@@ -6,7 +6,7 @@ require("dotenv").config();
 
 const router = express.Router();
 
-const HF_API_URL = "https://api-inference.huggingface.co/models/facebook/blenderbot-400M-distill";
+const HF_API_URL = "https://api-inference.huggingface.co/models/mrm8488/t5-base-finetuned-empatheticdialogues";
 const HF_API_KEY = process.env.HUGGINGFACE_API_KEY;
 
 // Rate limiting to prevent spam (5 requests per minute)

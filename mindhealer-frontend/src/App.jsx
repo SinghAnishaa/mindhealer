@@ -35,6 +35,7 @@ import Login from "./pages/Login";    // ✅ Import Login Page
 import ProtectedRoute from "./components/ProtectedRoute"; // ✅ Import Protected Route
 import { AuthProvider } from "./context/AuthContext"; // ✅ Import Auth Context
 import Profile from "./pages/Profile"; // Import Profile Page
+import Dashboard from './pages/Dashboard';
 
 function App() {
   return (
@@ -45,6 +46,11 @@ function App() {
         <Route path="/forum" element={<Forum />} />
         <Route path="/signup" element={<Signup />} />  {/* ✅ Signup Page */}
         <Route path="/login" element={<Login />} />    {/* ✅ Login Page */}
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        } />
 
         {/* ✅ Protect these routes (Only logged-in users can access) */}
         <Route path="/chat" element={

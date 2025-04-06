@@ -1,4 +1,4 @@
-// making the change of deepseek
+// AuthContext.jsx
 
 import React, { createContext, useState, useEffect } from "react";
 import axios from "axios";
@@ -72,8 +72,8 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     // ✅ Login function to store `authToken` and user safely
-    const login = async (userData, authToken) => {
-        if (!authToken || !userData) {
+    const login = async ({ user, authToken }) => {
+        if (!authToken || !user) {
             console.error("❌ Invalid login data. No authToken or user.");
             return;
         }
@@ -81,9 +81,10 @@ export const AuthProvider = ({ children }) => {
         console.log("✅ Storing Auth Token:", authToken);
         try {
             localStorage.setItem("authToken", authToken);
-            localStorage.setItem("user", JSON.stringify(userData));
+            localStorage.setItem("user", JSON.stringify(user));
             setAuthToken(authToken);
-            setUser(userData);
+            setUser(user);
+            navigate('/dashboard');
         } catch (error) {
             console.error("❌ Error storing authToken in localStorage:", error);
         }

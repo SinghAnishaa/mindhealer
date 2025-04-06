@@ -1,17 +1,39 @@
 import React, { useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const LoginModal = ({ isOpen, onClose, onLogin }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Simulate authentication (Replace with actual backend logic later)
-    if (email === "user@example.com" && password === "password") {
-      onLogin(email);
+
+    try {
+      const res = await axios.post("http://localhost:5050/api/auth/login", {
+        email,
+        password,
+      });
+
+      const { authToken, user } = res.data;
+
+      // ✅ Save to localStorage
+      localStorage.setItem("authToken", authToken);
+      localStorage.setItem("user", JSON.stringify(user));
+
+      // ✅ Trigger parent login logic (optional)
+      if (onLogin) onLogin(user);
+
+      // ✅ Close modal
       onClose();
-    } else {
-      alert("Invalid credentials! Try again.");
+
+      // ✅ Navigate to dashboard
+      navigate("/dashboard");
+    } catch (err) {
+      console.error("Login failed:", err);
+      setError("Invalid credentials. Please try again.");
     }
   };
 
@@ -21,6 +43,9 @@ const LoginModal = ({ isOpen, onClose, onLogin }) => {
     <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
       <div className="bg-white p-6 rounded-lg shadow-lg w-96">
         <h2 className="text-xl font-bold text-center mb-4">🔑 Login</h2>
+
+        {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+
         <form onSubmit={handleSubmit} className="space-y-3">
           <input
             type="email"
@@ -42,6 +67,7 @@ const LoginModal = ({ isOpen, onClose, onLogin }) => {
             Login
           </button>
         </form>
+
         <button onClick={onClose} className="w-full mt-2 text-sm text-gray-500">
           Cancel
         </button>
