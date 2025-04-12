@@ -2,8 +2,12 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@google/generative-ai": "^0.24.0",
     "@mui/icons-material": "^6.4.4",
     "@mui/material": "^6.4.4",
     "react-router-dom": "^7.1.5"
+  },
+  "devDependencies": {
+    "rollup": "^4.39.0"
   }
 }

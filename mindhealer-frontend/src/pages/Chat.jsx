@@ -7,6 +7,7 @@ import React, { useState, useEffect, useRef, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { getRandomQuote } from "../utils/quotes";
+import ReactMarkdown from "react-markdown";
 
 const Chat = () => {
     const [messages, setMessages] = useState([]);
@@ -174,7 +175,7 @@ const Chat = () => {
                             .map((msg, index) => (
                                 <div key={index} className={msg.sender === "user" ? "user-message" : "bot-message"}>
                                     <span className="message-time">{msg.time}</span>
-                                    {msg.text}
+                                    <ReactMarkdown>{msg.text}</ReactMarkdown> {/* ✅ Render Markdown */}
                                 </div>
                             ))
                     ) : (
