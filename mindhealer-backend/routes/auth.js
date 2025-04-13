@@ -25,9 +25,60 @@ if (!fs.existsSync(uploadDir)) {
 // Multer Storage Configuration
 const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, uploadDir),
-    filename: (req, file, cb) => cb(null, `${req.user.id}-${Date.now()}-${file.originalname}`)
+    filename: (req, file, cb) => cb(null, `${req.user?.id || 'unknown'}-${Date.now()}-${file.originalname}`)
 });
 const upload = multer({ storage });
+
+// **Signup Route**
+router.post('/signup', async (req, res) => {
+    try {
+        const { username, email, password } = req.body;
+
+        // Validate input
+        if (!username || !email || !password) {
+            return res.status(400).json({ message: 'All fields are required' });
+        }
+
+        // Check if user already exists
+        let user = await User.findOne({ email });
+        if (user) {
+            return res.status(400).json({ message: 'User already exists' });
+        }
+
+        // Create new user
+        user = new User({
+            username,
+            email,
+            password: await bcrypt.hash(password, 10),
+            profile: {
+                bio: "",
+                avatar: "",
+                age: null,
+                location: ""
+            }
+        });
+
+        await user.save();
+
+        // Generate JWT token
+        const authToken = generateAuthToken(user);
+
+        res.status(201).json({
+            message: 'Signup successful!',
+            authToken,
+            user: {
+                id: user._id,
+                username: user.username,
+                email: user.email,
+                profile: user.profile
+            }
+        });
+
+    } catch (error) {
+        console.error('Signup Error:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+});
 
 // **Login Route**
 router.post('/login', async (req, res) => {
