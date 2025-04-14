@@ -7,7 +7,11 @@ A comprehensive mental health support platform featuring AI-powered chat assista
 - 🤖 AI-powered Mental Health Chatbot (Google Gemini AI)
 - 📊 Interactive Mood Tracking & Analytics Dashboard
 - 💭 Personal Journal with Daily Prompts
-- 👥 Community Support Forum
+- 👥 Community Support Forum with Real-time Chat
+  - Live user count tracking
+  - Anonymous chat rooms by topic
+  - Persistent message history
+  - Real-time typing indicators
 - 🏥 Professional Therapist Booking System
 - 👤 User Profile Management
 - 🔔 Toast Notifications System
@@ -68,6 +72,7 @@ mindhealer/
 - Node.js with Express.js
 - MongoDB with Mongoose
 - Google Gemini AI API
+- Socket.IO for real-time communication
 - JWT Authentication
 - Multer for file uploads
 - CORS enabled
@@ -177,6 +182,32 @@ Access the application at:
 - POST `/api/profile/upload-image` - Upload profile picture
   - Body: FormData with image
 
+### WebSocket Events
+
+Socket.IO events for real-time chat:
+
+#### Client Events
+- `joinRoom` - Join a chat room
+  - Payload: `{ room: string }`
+  - Response: Room join confirmation
+
+- `message` - Send a message
+  - Payload: `{ room: string, message: string }`
+  - Response: Message broadcast to room
+
+- `leaveRoom` - Leave a chat room
+  - Payload: `{ room: string }`
+
+#### Server Events
+- `roomUserCount` - Receive updated user count
+  - Payload: `{ room: string, count: number }`
+
+- `userJoined` - New user joined notification
+  - Payload: `{ userId: string, room: string }`
+
+- `message` - Receive chat message
+  - Payload: `{ userId: string, message: string }
+
 ## 💻 Development Guide
 
 ### Frontend Components
@@ -254,6 +285,13 @@ Chat endpoints are rate-limited:
    - Clear localStorage
    - Check token expiration
    - Verify API endpoints
+
+4. WebSocket Connection Issues
+   - Ensure WebSocket server is running (PORT 5050)
+   - Check for client connection errors in browser console
+   - Verify CORS settings allow WebSocket connections
+   - Check if firewall is blocking WebSocket traffic
+   - Monitor socket disconnect events in server logs
 
 ## 🤝 Contributing
 
