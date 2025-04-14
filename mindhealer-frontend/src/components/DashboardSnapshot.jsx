@@ -1,87 +1,85 @@
-// // DashboardSnapshot.jsx
-// import React, { useEffect, useState } from 'react';
-// import axios from 'axios';
+import React from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
+import { Container } from "./ui/container";
+import { Activity, Calendar, MessageSquare, Clock } from "lucide-react";
 
-// const DashboardSnapshot = () => {
-//   const [snapshot, setSnapshot] = useState(null);
+const statCards = [
+  {
+    title: "Mood Today",
+    value: "😊",
+    icon: Activity,
+    description: "You're feeling good!",
+    color: "blue",
+  },
+  {
+    title: "Journal Streak",
+    value: "7 days",
+    icon: Calendar,
+    description: "Keep it up!",
+    color: "green",
+  },
+  {
+    title: "Chat Sessions",
+    value: "3",
+    icon: MessageSquare,
+    description: "This week",
+    color: "purple",
+  },
+  {
+    title: "Next Therapy",
+    value: "Tomorrow",
+    icon: Clock,
+    description: "2:00 PM",
+    color: "orange",
+  },
+];
 
-//   useEffect(() => {
-//     const fetchSnapshot = async () => {
-//       try {
-//         const res = await axios.get('/api/dashboard/snapshot', {
-//             headers: { Authorization: `Bearer ${localStorage.getItem('authToken')}` }
-//           });
-//         setSnapshot(res.data);
-//       } catch (err) {
-//         console.error(err);
-//       }
-//     };
-
-//     fetchSnapshot();
-//   }, []);
-
-//   {Array.isArray(snapshot?.recentMoods) && snapshot.recentMoods.map((entry, index) => (
-//     <div key={index}>
-//       <p><b>Mood:</b> {entry.mood}</p>
-//       <p><b>Journal:</b> {entry.journal || '—'}</p>
-//     </div>
-//   ))}  
-
-//   return (
-//     <div className="p-4 rounded-xl bg-white shadow-md">
-//       <h2 className="text-xl font-semibold mb-2">🧘 Your Dashboard</h2>
-
-//       <div className="mb-4">
-//         <p className="font-medium">📝 Journal Prompt:</p>
-//         <p className="italic">{snapshot.journalPrompt}</p>
-//       </div>
-
-//       <div>
-//         <p className="font-medium mb-2">📊 Recent Mood Entries:</p>
-//         {snapshot.recentMoods.map((entry, index) => (
-//           <div key={index} className="border-l-4 pl-3 mb-2 border-blue-300">
-//             <p><b>Mood:</b> {entry.mood}</p>
-//             <p><b>Journal:</b> {entry.journal || '—'}</p>
-//             <p className="text-sm text-gray-500">{new Date(entry.createdAt).toLocaleString()}</p>
-//           </div>
-//         ))}
-//       </div>
-//     </div>
-//   );
-// };
-
-// export default DashboardSnapshot;
-
-import React from 'react';
-
-function DashboardSnapshot({ snapshot }) {
-  // 2. Handle loading state at the top if `snapshot` is null or undefined.
-  if (!snapshot) {
-    return <div>Loading...</div>;
-  }
-
-  // Determine if `recentMoods` is a valid array; if not, use an empty array.
-  const recentMoods = Array.isArray(snapshot.recentMoods) ? snapshot.recentMoods : [];
-
+const DashboardSnapshot = ({ data }) => {
   return (
-    <div className="dashboard-snapshot">
-      {/* Render the recent moods list only if it's a valid non-empty array */}
-      {recentMoods.length > 0 ? (
-        <ul className="recent-moods-list">
-          {recentMoods.map((moodEntry, index) => (
-            <li key={index}>
-              {/* Render each mood entry (adjust content as needed) */}
-              {moodEntry}
-            </li>
-          ))}
-        </ul>
-      ) : (
-        // 4. Fallback message if the array is empty or missing
-        <p>No mood entries yet</p>
-      )}
-    </div>
+    <section className="py-6">
+      <Container>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {statCards.map((card, index) => {
+            const IconComponent = card.icon;
+            return (
+              <Card
+                key={index}
+                className="animate-fade-in"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-center space-x-4">
+                    <div className={`p-3 bg-${card.color}-100 rounded-full`}>
+                      <IconComponent
+                        className={`h-6 w-6 text-${card.color}-600`}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">
+                        {card.title}
+                      </p>
+                      <div className="flex items-baseline">
+                        <p className="text-2xl font-semibold text-gray-900">
+                          {data?.[card.title.toLowerCase().replace(/\s+/g, "_")] ||
+                            card.value}
+                        </p>
+                        {card.description && (
+                          <p className="ml-2 text-sm text-gray-500">
+                            {card.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </Container>
+    </section>
   );
-}
+};
 
 export default DashboardSnapshot;
 

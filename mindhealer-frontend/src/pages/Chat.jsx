@@ -1,207 +1,176 @@
-// making critical chatbot fixes
-
-// doing chatgpt changes
-
-import "../styles/Chat.css";
-import React, { useState, useEffect, useRef, useContext } from "react";
-import { AuthContext } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react";
+import { Container } from "../components/ui/container";
+import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
+import { Button } from "../components/ui/button";
+import { Send, Bot, Sparkles } from "lucide-react";
 import { getRandomQuote } from "../utils/quotes";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown from 'react-markdown';
 
 const Chat = () => {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState("");
     const [isTyping, setIsTyping] = useState(false);
-    const [quote, setQuote] = useState("");
-    const chatEndRef = useRef(null);
-    const { user, authToken } = useContext(AuthContext);
-    const navigate = useNavigate();
+    const messagesEndRef = useRef(null);
+    const [dailyQuote, setDailyQuote] = useState("");
 
     useEffect(() => {
-        setQuote(getRandomQuote());
-        const quoteInterval = setInterval(() => {
-            setQuote(getRandomQuote());
-        }, 10000);
-        return () => clearInterval(quoteInterval);
-    }, []);
-
-    useEffect(() => {
-        const checkAuth = () => {
-            const token = authToken || localStorage.getItem("authToken");
-            if (!token) {
-                console.warn("❌ No authToken found! Redirecting...");
-                navigate("/login");
-                return false;
-            }
-            return true;
-        };
-
-        if (checkAuth()) {
-            console.log("🔄 Fetching chat history...");
-            fetchChatHistory();
-        }
-    }, [authToken, navigate]);
-
-    useEffect(() => {
-        document.body.style.background = "url('/src/assets/chat-background.webp') no-repeat center center/cover";
-        document.body.style.animation = "backgroundFade 10s infinite alternate ease-in-out";
+        setDailyQuote(getRandomQuote());
+        fetchChatHistory();
     }, []);
 
     const fetchChatHistory = async () => {
-        const token = authToken || localStorage.getItem("authToken");
-        if (!token) return;
-
         try {
+            const token = localStorage.getItem("authToken");
             const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/chatbot/history`, {
-                method: "GET",
-                headers: { 
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json"
+                headers: {
+                    Authorization: `Bearer ${token}`,
                 }
             });
-
-            if (response.status === 401) {
-                console.warn("Session expired, redirecting to login");
-                navigate("/login");
-                return;
+            if (response.ok) {
+                const data = await response.json();
+                const formattedMessages = data.messages.map(msg => ({
+                    text: msg.content,
+                    sender: msg.role === "user" ? "user" : "bot",
+                    timestamp: new Date()
+                }));
+                setMessages(formattedMessages);
             }
-
-            if (!response.ok) {
-                console.error("Failed to fetch chat history:", response.status);
-                return;
-            }
-
-            const data = await response.json();
-            setMessages(data.messages || []);
         } catch (error) {
-            console.error("Error fetching chat history:", error);
+            console.error("Failed to fetch chat history:", error);
         }
     };
 
-    const sendMessageToBackend = async (message, token) => {
-        try {
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/chatbot/chat`, {
-                method: "POST",
-                headers: {
-                    "Authorization": `Bearer ${token}`,
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({ message })
-            });
-
-            if (response.status === 401) {
-                navigate("/login");
-                return "Session expired";
-            }
-
-            if (!response.ok) {
-                return "Failed to send message. Please try again.";
-            }
-
-            const data = await response.json();
-            console.log("API Response:", data);
-            return data.response || "I'm not sure how to respond.";
-        } catch (error) {
-            console.error("Network error:", error);
-            return "Network issue, please try again.";
-        }
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
-    const handleSendMessage = async () => {
-        const trimmedMessage = newMessage.trim(); // ✅ Trim input early
-        if (!trimmedMessage) return; // ✅ Prevent empty messages
-    
-        const token = authToken || localStorage.getItem("authToken");
-        if (!token) {
-            navigate("/login");
-            return;
-        }
-    
-        const userMessage = { 
-            id: Date.now(), 
-            sender: "user", 
-            text: trimmedMessage,  // ✅ Store only trimmed message
-            time: new Date().toLocaleTimeString() 
-        };
-    
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
+
+    const handleSendMessage = async (e) => {
+        e.preventDefault();
+        if (!newMessage.trim()) return;
+
+        const userMessage = { text: newMessage, sender: "user", timestamp: new Date() };
         setMessages(prev => [...prev, userMessage]);
         setNewMessage("");
         setIsTyping(true);
-    
+
         try {
-            const botResponse = await sendMessageToBackend(trimmedMessage, token);
-            
-            if (botResponse === "Session expired") {
-                navigate("/login");
-                return;
+            const token = localStorage.getItem("authToken");
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/chatbot/chat`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ message: newMessage }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                setMessages(prev => [...prev, {
+                    text: data.response,
+                    sender: "bot",
+                    timestamp: new Date()
+                }]);
+            } else {
+                throw new Error("Failed to get response");
             }
-    
-            const trimmedBotResponse = botResponse?.trim(); // ✅ Ensure valid bot response
-    
-            if (!trimmedBotResponse) {
-                console.warn("❌ Empty bot response, skipping update.");
-                return;
-            }
-    
-            const botMessage = { 
-                id: Date.now() + 1, 
-                sender: "bot", 
-                text: trimmedBotResponse, // ✅ Store only trimmed response
-                time: new Date().toLocaleTimeString() 
-            };
-    
-            setMessages(prev => [...prev, botMessage]);
         } catch (error) {
-            console.error("❌ Error sending message:", error);
+            console.error("Chat Error:", error);
+            setMessages(prev => [...prev, {
+                text: "I'm having trouble responding right now. Please try again later.",
+                sender: "bot",
+                timestamp: new Date()
+            }]);
         } finally {
             setIsTyping(false);
         }
     };
-    
-    // ✅ Auto-scroll when messages update
-    useEffect(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);    
 
     return (
-        <div className="chat-layout">
-            <div className="chat-box">
-                <h2 className="chat-title">MindHealer Chat</h2>
-                <div className="chat-messages">
-                    {messages && messages.length > 0 ? (
-                        messages
-                            .filter(msg => msg.text && msg.text.trim() !== "") // ✅ Skip empty messages
-                            .map((msg, index) => (
-                                <div key={index} className={msg.sender === "user" ? "user-message" : "bot-message"}>
-                                    <span className="message-time">{msg.time}</span>
-                                    <ReactMarkdown>{msg.text}</ReactMarkdown> {/* ✅ Render Markdown */}
-                                </div>
-                            ))
-                    ) : (
-                        <p className="no-messages">Start a conversation to receive support.</p>
-                    )}
-                    <div ref={chatEndRef} style={{ display: "none" }} />
-                </div>
-                <div className="chat-input">
-                    <input
-                        type="text"
-                        placeholder="Type a message..."
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                        disabled={isTyping}
-                    />
-                    <button onClick={handleSendMessage} disabled={isTyping}>
-                        {isTyping ? "Sending..." : "Send"}
-                    </button>
-                </div>
-            </div>
+        <div className="min-h-screen py-8">
+            <Container>
+                <div className="max-w-4xl mx-auto">
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <Card className="lg:col-span-2 h-[70vh] flex flex-col">
+                            <CardHeader className="border-b">
+                                <CardTitle className="flex items-center">
+                                    <Bot className="w-6 h-6 text-blue-600 mr-2" />
+                                    AI Mental Health Assistant
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="flex-1 overflow-y-auto p-4 space-y-4">
+                                {messages.map((message, index) => (
+                                    <div
+                                        key={index}
+                                        className={`flex ${
+                                            message.sender === "user" ? "justify-end" : "justify-start"
+                                        }`}
+                                    >
+                                        <div
+                                            className={`max-w-[80%] p-3 rounded-lg ${
+                                                message.sender === "user"
+                                                    ? "bg-blue-600 text-white"
+                                                    : "bg-gray-100 text-gray-800"
+                                            }`}
+                                        >
+                                            {message.sender === "user" ? (
+                                                <p className="text-sm">{message.text}</p>
+                                            ) : (
+                                                <div className="text-sm prose prose-sm max-w-none">
+                                                    <ReactMarkdown>{message.text}</ReactMarkdown>
+                                                </div>
+                                            )}
+                                            <span className="text-xs opacity-75 mt-1 block">
+                                                {message.timestamp.toLocaleTimeString()}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                                {isTyping && (
+                                    <div className="flex justify-start">
+                                        <div className="bg-gray-100 text-gray-800 p-3 rounded-lg">
+                                            <p className="text-sm">AI is typing...</p>
+                                        </div>
+                                    </div>
+                                )}
+                                <div ref={messagesEndRef} />
+                            </CardContent>
+                            <div className="border-t p-4">
+                                <form onSubmit={handleSendMessage} className="flex space-x-2">
+                                    <input
+                                        type="text"
+                                        value={newMessage}
+                                        onChange={(e) => setNewMessage(e.target.value)}
+                                        placeholder="Type your message..."
+                                        className="input flex-1"
+                                    />
+                                    <Button type="submit" disabled={!newMessage.trim() || isTyping}>
+                                        <Send className="h-4 w-4" />
+                                    </Button>
+                                </form>
+                            </div>
+                        </Card>
 
-            <div className="quote-box">
-                <h2>Mental Health Tip</h2>
-                <p>{quote}</p>
-            </div>
+                        <Card className="h-fit">
+                            <CardHeader>
+                                <CardTitle className="flex items-center text-lg">
+                                    <Sparkles className="w-5 h-5 text-blue-600 mr-2" />
+                                    Daily Inspiration
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <blockquote className="italic text-gray-600">
+                                    "{dailyQuote}"
+                                </blockquote>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
+            </Container>
         </div>
     );
 };

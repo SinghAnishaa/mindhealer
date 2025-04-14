@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useContext } from "react";
-import { Box, Typography, TextField, Button, Avatar } from "@mui/material";
+import { Container } from "../components/ui/container";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/card";
+import { Button } from "../components/ui/button";
 import { AuthContext } from "../context/AuthContext";
+import { Camera, User, Mail, MapPin, Calendar } from "lucide-react";
 import axios from "axios";
 
 const Profile = () => {
@@ -12,6 +15,8 @@ const Profile = () => {
         profileImage: null,
     });
     const [selectedFile, setSelectedFile] = useState(null);
+    const [previewUrl, setPreviewUrl] = useState(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         if (user) {
@@ -19,111 +24,176 @@ const Profile = () => {
                 bio: user.profile?.bio || "",
                 age: user.profile?.age || "",
                 location: user.profile?.location || "",
-                profileImage: user.profile?.avatar ? `http://localhost:5050${user.profile.avatar}` : "/default-avatar.png",
+                profileImage: user.profile?.avatar ? `${import.meta.env.VITE_API_BASE_URL}${user.profile.avatar}` : "/default-avatar.png",
             });
         }
     }, [user]);
 
-    // ✅ Helper function to safely retrieve authToken
-    const getAuthToken = () => {
-        try {
-            const storedAuthToken = localStorage.getItem("authToken");
-            if (!storedAuthToken || storedAuthToken === "undefined") {
-                console.warn("❌ No valid authToken found.");
-                return null;
-            }
-            return storedAuthToken;
-        } catch (error) {
-            console.error("❌ Error accessing localStorage:", error);
-            return null;
+    const handleImageChange = (e) => {
+        if (e.target.files.length > 0) {
+            const file = e.target.files[0];
+            setSelectedFile(file);
+            setPreviewUrl(URL.createObjectURL(file));
         }
     };
 
-    // Handle Input Changes
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    // Handle Image Selection
-    const handleImageChange = (e) => {
-        if (e.target.files.length > 0) {
-            setSelectedFile(e.target.files[0]);
-        }
-    };
-
-    // ✅ Handle Profile Image Upload
-    const handleImageUpload = async () => {
-        if (!selectedFile) return alert("Please select an image.");
-
-        const authToken = getAuthToken();
-        if (!authToken) return alert("❌ Authentication error. Please log in again.");
-
-        const imageData = new FormData();
-        imageData.append("profileImage", selectedFile);
-
-        try {
-            const res = await axios.put(
-                "http://localhost:5050/api/auth/update-profile",
-                imageData,
-                { headers: { Authorization: `Bearer ${authToken}` } } // ✅ Use authToken
-            );
-            setUser({ ...user, profile: { ...user.profile, avatar: res.data.user.profile.avatar } });
-            alert("Profile image updated!");
-        } catch (error) {
-            console.error("❌ Image Upload Error:", error);
-            alert("Failed to upload image.");
-        }
-    };
-
-    // ✅ Handle Profile Update (Bio, Age, Location)
     const handleUpdateProfile = async () => {
-        const authToken = getAuthToken();
-        if (!authToken) return alert("❌ Authentication error. Please log in again.");
-
+        setIsSubmitting(true);
         try {
-            const res = await axios.put("http://localhost:5050/api/auth/update-profile", formData, {
-                headers: { Authorization: `Bearer ${authToken}` }, // ✅ Use authToken
-            });
+            const token = localStorage.getItem("authToken");
+            if (!token) {
+                alert("Authentication error. Please log in again.");
+                return;
+            }
+
+            // First, handle image upload if there's a new image
+            if (selectedFile) {
+                const imageData = new FormData();
+                imageData.append("profileImage", selectedFile);
+                await axios.put(
+                    `${import.meta.env.VITE_API_BASE_URL}/api/auth/upload-profile-image`,
+                    imageData,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+            }
+
+            // Then update other profile information
+            const res = await axios.put(
+                `${import.meta.env.VITE_API_BASE_URL}/api/auth/update-profile`,
+                {
+                    bio: formData.bio,
+                    age: formData.age,
+                    location: formData.location,
+                },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
             setUser(res.data.user);
-            alert("Profile Updated Successfully!");
+            alert("Profile updated successfully!");
         } catch (error) {
             console.error("Profile Update Error:", error);
+            alert("Failed to update profile. Please try again.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     return (
-        <Box className="max-w-lg mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
-            <Typography variant="h5" className="mb-4 text-center font-semibold">
-                👤 Edit Profile
-            </Typography>
+        <Container className="py-8">
+            <div className="max-w-4xl mx-auto space-y-8">
+                <div className="flex items-center justify-between">
+                    <h1 className="text-3xl font-bold text-gray-900">Your Profile</h1>
+                    <User className="h-8 w-8 text-blue-600" />
+                </div>
 
-            {/* Profile Picture Upload */}
-            <Box className="flex justify-center mb-4">
-                <label htmlFor="upload-profile-pic">
-                    <input
-                        type="file"
-                        id="upload-profile-pic"
-                        accept="image/*"
-                        style={{ display: "none" }}
-                        onChange={handleImageChange}
-                    />
-                    <Avatar
-                        src={formData.profileImage}
-                        alt="Profile"
-                        sx={{ width: 80, height: 80, cursor: "pointer" }}
-                        onClick={handleImageUpload}
-                    />
-                </label>
-            </Box>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Profile Information</CardTitle>
+                        <CardDescription>Update your personal information and profile picture</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-8">
+                            {/* Profile Image Section */}
+                            <div className="flex flex-col items-center space-y-4">
+                                <div className="relative">
+                                    <img
+                                        src={previewUrl || formData.profileImage || "/default-avatar.png"}
+                                        alt="Profile"
+                                        className="w-32 h-32 rounded-full object-cover border-4 border-blue-100"
+                                    />
+                                    <label className="absolute bottom-0 right-0 p-2 bg-blue-600 rounded-full cursor-pointer hover:bg-blue-700 transition-colors">
+                                        <Camera className="h-5 w-5 text-white" />
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleImageChange}
+                                            className="hidden"
+                                        />
+                                    </label>
+                                </div>
+                                <p className="text-sm text-gray-600">
+                                    Click the camera icon to update your profile picture
+                                </p>
+                            </div>
 
-            <TextField fullWidth label="Bio" name="bio" value={formData.bio} onChange={handleChange} className="mb-3" />
-            <TextField fullWidth label="Age" name="age" type="number" value={formData.age} onChange={handleChange} className="mb-3" />
-            <TextField fullWidth label="Location" name="location" value={formData.location} onChange={handleChange} className="mb-3" />
+                            {/* Profile Details Form */}
+                            <div className="grid gap-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        <Mail className="w-4 h-4 inline-block mr-2" />
+                                        Email
+                                    </label>
+                                    <input
+                                        type="email"
+                                        value={user?.email || ""}
+                                        disabled
+                                        className="input w-full bg-gray-50"
+                                    />
+                                </div>
 
-            <Button variant="contained" color="primary" fullWidth onClick={handleUpdateProfile}>
-                UPDATE PROFILE
-            </Button>
-        </Box>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        <User className="w-4 h-4 inline-block mr-2" />
+                                        Bio
+                                    </label>
+                                    <textarea
+                                        name="bio"
+                                        value={formData.bio}
+                                        onChange={handleChange}
+                                        placeholder="Tell us about yourself..."
+                                        className="input w-full min-h-[100px]"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            <Calendar className="w-4 h-4 inline-block mr-2" />
+                                            Age
+                                        </label>
+                                        <input
+                                            type="number"
+                                            name="age"
+                                            value={formData.age}
+                                            onChange={handleChange}
+                                            placeholder="Your age"
+                                            className="input w-full"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            <MapPin className="w-4 h-4 inline-block mr-2" />
+                                            Location
+                                        </label>
+                                        <input
+                                            type="text"
+                                            name="location"
+                                            value={formData.location}
+                                            onChange={handleChange}
+                                            placeholder="Your location"
+                                            className="input w-full"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <Button
+                                onClick={handleUpdateProfile}
+                                disabled={isSubmitting}
+                                className="w-full"
+                            >
+                                {isSubmitting ? "Updating Profile..." : "Save Changes"}
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+        </Container>
     );
 };
 

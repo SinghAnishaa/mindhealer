@@ -1,80 +1,129 @@
-// import { Routes, Route } from "react-router-dom";
-// import Navbar from "./components/Navbar";
-// import Forum from "./pages/Forum"; // ✅ Import Forum Page correctly
-// import Home from "./pages/Home";
-// import Chat from "./pages/Chat";
-// import Therapists from "./pages/Therapists";
-
-// // Keep only these small inline components
-// //const Therapists = () => <div className="p-5 mt-24 text-center">🩺 Therapist Booking</div>;
-
-// function App() {
-//   return (
-//     <>
-//       <Navbar />
-//       <Routes>
-//         <Route path="/" element={<Home />} />
-//         <Route path="/forum" element={<Forum />} /> {/* ✅ Now using the correct imported Forum component */}
-//         <Route path="/chat" element={<Chat />} />
-//         <Route path="/therapists" element={<Therapists />} />
-//       </Routes>
-//     </>
-//   );
-// }
-
-// export default App;
-
+import React, { Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
-import Navbar from "./components/Navbar";
-import Forum from "./pages/Forum";
-import Home from "./pages/Home";
-import Chat from "./pages/Chat";
-import Therapists from "./pages/Therapists";
-import Signup from "./pages/Signup";  // ✅ Import Signup Page
-import Login from "./pages/Login";    // ✅ Import Login Page
-import ProtectedRoute from "./components/ProtectedRoute"; // ✅ Import Protected Route
-import { AuthProvider } from "./context/AuthContext"; // ✅ Import Auth Context
-import Profile from "./pages/Profile"; // Import Profile Page
-import Dashboard from './pages/Dashboard';
+import { AuthProvider } from "./context/AuthContext";
+import { ToastProvider } from "./context/ToastContext";
+import MainLayout from "./components/layout/MainLayout";
+import { Loading } from "./components/ui/loading";
+import ProtectedRoute from "./components/ProtectedRoute";
+
+// Lazy load pages for better performance
+const Home = React.lazy(() => import("./pages/Home"));
+const Dashboard = React.lazy(() => import("./pages/Dashboard"));
+const Chat = React.lazy(() => import("./pages/Chat"));
+const Forum = React.lazy(() => import("./pages/Forum"));
+const Profile = React.lazy(() => import("./pages/Profile"));
+const Login = React.lazy(() => import("./pages/Login"));
+const Signup = React.lazy(() => import("./pages/Signup"));
+const Therapists = React.lazy(() => import("./pages/Therapists"));
+const NotFound = React.lazy(() => import("./pages/NotFound"));
+
+const LoadingFallback = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <Loading size="lg" text="Loading page..." />
+  </div>
+);
 
 function App() {
   return (
     <AuthProvider>
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/forum" element={<Forum />} />
-        <Route path="/signup" element={<Signup />} />  {/* ✅ Signup Page */}
-        <Route path="/login" element={<Login />} />    {/* ✅ Login Page */}
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        } />
-
-        {/* ✅ Protect these routes (Only logged-in users can access) */}
-        <Route path="/chat" element={
-          <ProtectedRoute>
-            <Chat />
-          </ProtectedRoute>
-        }/>
-
-        <Route path="/therapists" element={
-          <ProtectedRoute>
-            <Therapists />
-          </ProtectedRoute>
-        }/>
-
-        <Route path="/profile" element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        }/>
-        
-      </Routes>
+      <ToastProvider>
+        <MainLayout>
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/chat"
+                element={
+                  <ProtectedRoute>
+                    <Chat />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/forum"
+                element={
+                  <ProtectedRoute>
+                    <Forum />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/therapists"
+                element={
+                  <ProtectedRoute>
+                    <Therapists />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </MainLayout>
+      </ToastProvider>
     </AuthProvider>
   );
 }
 
 export default App;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

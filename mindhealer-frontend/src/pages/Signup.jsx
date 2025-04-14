@@ -1,140 +1,159 @@
-import { useState, useContext } from "react";
-import { signup } from "../api/auth";
+import React, { useState, useContext } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { Container } from "../components/ui/container";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../components/ui/card";
+import { Button } from "../components/ui/button";
 import { AuthContext } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
-import { Box, TextField, Button, Typography, Alert } from "@mui/material";
-import { Link } from "react-router-dom";
+import { signup } from "../api/auth";
+import { Heart, Mail, Lock, User } from "lucide-react";
 
 const Signup = () => {
-    const [formData, setFormData] = useState({
-        username: "",
-        email: "",
-        password: "",
-        confirmPassword: ""
-    });
-    const [error, setError] = useState("");
-    const [loading, setLoading] = useState(false);
-    const { login } = useContext(AuthContext);
-    const navigate = useNavigate();
+  const navigate = useNavigate();
+  const { setUser } = useContext(AuthContext);
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-    const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value
-        });
-        setError(""); // Clear error when user types
-    };
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError("");
+  };
 
-    const handleSignup = async (e) => {
-        e.preventDefault();
-        setError("");
-        setLoading(true);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
 
-        // Validation
-        if (formData.password !== formData.confirmPassword) {
-            setError("Passwords do not match");
-            setLoading(false);
-            return;
-        }
+    setIsLoading(true);
+    setError("");
 
-        if (formData.password.length < 6) {
-            setError("Password must be at least 6 characters long");
-            setLoading(false);
-            return;
-        }
+    try {
+      const res = await signup(formData);
+      setUser(res.user);
+      navigate("/dashboard");
+    } catch (err) {
+      setError(err.response?.data?.message || "Registration failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-        try {
-            const res = await signup({
-                username: formData.username,
-                email: formData.email,
-                password: formData.password
-            });
+  return (
+    <Container className="py-16">
+      <div className="max-w-md mx-auto">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-100 mb-4">
+            <Heart className="h-8 w-8 text-blue-600" />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900">Create Account</h1>
+          <p className="text-gray-600 mt-2">
+            Start your journey to better mental health
+          </p>
+        </div>
 
-            // Use the login function from AuthContext to set up the session
-            await login({ user: res.user, authToken: res.authToken });
-            navigate("/dashboard");
-        } catch (err) {
-            console.error("Signup Error:", err);
-            setError(err.message || "Signup failed. Please try again.");
-        } finally {
-            setLoading(false);
-        }
-    };
+        <Card>
+          <CardContent className="pt-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="p-3 rounded bg-red-50 text-red-600 text-sm">
+                  {error}
+                </div>
+              )}
 
-    return (
-        <Box className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-400 to-blue-600 p-4">
-            <Box className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-                <Typography variant="h4" className="text-center mb-6">
-                    🌟 Join MindHealer
-                </Typography>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <User className="w-4 h-4 inline-block mr-2" />
+                  Username
+                </label>
+                <input
+                  type="text"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleChange}
+                  required
+                  className="input w-full"
+                  placeholder="Choose a username"
+                />
+              </div>
 
-                {error && (
-                    <Alert severity="error" className="mb-4">
-                        {error}
-                    </Alert>
-                )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <Mail className="w-4 h-4 inline-block mr-2" />
+                  Email
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                  className="input w-full"
+                  placeholder="Enter your email"
+                />
+              </div>
 
-                <form onSubmit={handleSignup} className="space-y-4">
-                    <TextField
-                        fullWidth
-                        label="Username"
-                        name="username"
-                        value={formData.username}
-                        onChange={handleChange}
-                        required
-                        variant="outlined"
-                    />
-                    <TextField
-                        fullWidth
-                        label="Email"
-                        name="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        required
-                        variant="outlined"
-                    />
-                    <TextField
-                        fullWidth
-                        label="Password"
-                        name="password"
-                        type="password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        required
-                        variant="outlined"
-                    />
-                    <TextField
-                        fullWidth
-                        label="Confirm Password"
-                        name="confirmPassword"
-                        type="password"
-                        value={formData.confirmPassword}
-                        onChange={handleChange}
-                        required
-                        variant="outlined"
-                    />
-                    <Button
-                        type="submit"
-                        variant="contained"
-                        color="primary"
-                        fullWidth
-                        size="large"
-                        disabled={loading}
-                    >
-                        {loading ? "Creating Account..." : "Sign Up"}
-                    </Button>
-                </form>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <Lock className="w-4 h-4 inline-block mr-2" />
+                  Password
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  className="input w-full"
+                  placeholder="Create a password"
+                />
+              </div>
 
-                <Typography className="text-center mt-4">
-                    Already have an account?{" "}
-                    <Link to="/login" className="text-blue-600 hover:underline">
-                        Login here
-                    </Link>
-                </Typography>
-            </Box>
-        </Box>
-    );
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <Lock className="w-4 h-4 inline-block mr-2" />
+                  Confirm Password
+                </label>
+                <input
+                  type="password"
+                  name="confirmPassword"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  required
+                  className="input w-full"
+                  placeholder="Confirm your password"
+                />
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isLoading}
+              >
+                {isLoading ? "Creating Account..." : "Sign Up"}
+              </Button>
+
+              <div className="text-center text-sm text-gray-600">
+                Already have an account?{" "}
+                <Link
+                  to="/login"
+                  className="text-blue-600 hover:text-blue-700 font-medium"
+                >
+                  Sign in
+                </Link>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </Container>
+  );
 };
 
 export default Signup;

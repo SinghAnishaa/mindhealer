@@ -5,7 +5,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 async function getChatResponse(message) {
     try {
-        // For text-only input, use the gemini-pro model
+        // Use the standard gemini-pro model
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
         const prompt = `You are MindHealer, an empathetic mental health chatbot. 
@@ -14,13 +14,14 @@ async function getChatResponse(message) {
         console.log("🔍 Sending prompt to Gemini API:", prompt);
 
         const result = await model.generateContent(prompt);
+        const response = await result.response;
 
-        if (!result || !result.response) {
+        if (!response) {
             console.error("❌ Invalid response from Gemini API:", result);
             return { error: "Invalid response from Gemini API" };
         }
 
-        const text = result.response.text();
+        const text = response.text();
         console.log("✅ Gemini API Response:", text);
 
         return { response: text };
