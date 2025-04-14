@@ -10,6 +10,9 @@ A comprehensive mental health support platform featuring AI-powered chat assista
 - 👥 Community Support Forum
 - 🏥 Professional Therapist Booking System
 - 👤 User Profile Management
+- 🔔 Toast Notifications System
+- 🎨 Customizable Theme Support
+- 📱 Responsive Mobile-First Design
 
 ## 🏗 Project Structure
 
@@ -19,11 +22,14 @@ mindhealer/
 │   ├── src/
 │   │   ├── api/                  # API integration
 │   │   ├── components/           # Reusable React components
+│   │   │   ├── layout/          # Layout components
+│   │   │   └── ui/             # UI component library
 │   │   ├── context/             # React Context providers
 │   │   ├── pages/              # Main application pages
 │   │   ├── styles/             # CSS styles
 │   │   └── utils/              # Helper functions
 │   └── public/                 # Static assets
+│       └── favicon.svg         # App icon
 │
 └── mindhealer-backend/          # Node.js backend server
     ├── models/                 # Database schemas
@@ -44,6 +50,19 @@ mindhealer/
 - React Markdown 10.1.0
 - Context API for state management
 - Axios 1.7.9 for API calls
+- Lucide React for icons
+- Clsx & Tailwind Merge for class utilities
+- ESLint for code quality
+- PostCSS for CSS processing
+
+### UI Components
+- Custom Button component
+- Card system with Header/Content/Footer
+- Container layouts
+- Toast notifications
+- Loading states
+- Responsive navigation
+- Form elements
 
 ### Backend
 - Node.js with Express.js
@@ -163,28 +182,37 @@ Access the application at:
 ### Frontend Components
 
 #### Project Structure
-- \`components/\`: Reusable UI components
-- \`pages/\`: Main application views
-- \`context/\`: React Context providers
-- \`api/\`: API integration services
-- \`utils/\`: Helper functions
-- \`styles/\`: CSS stylesheets
+- `components/`: Reusable UI components
+  - `layout/`: Layout components (MainLayout, containers)
+  - `ui/`: Core UI components (buttons, cards, toasts)
+- `pages/`: Main application views
+- `context/`: React Context providers (Auth, Toast)
+- `api/`: API integration services
+- `utils/`: Helper functions
+- `styles/`: CSS stylesheets
 
 #### Component Guidelines
 1. Use functional components with hooks
 2. Implement proper error boundaries
 3. Use Material UI components when possible
 4. Follow atomic design principles
+5. Use Tailwind for styling
+6. Implement loading states for async operations
+7. Add proper TypeScript types (where applicable)
 
 ### State Management
 - Use AuthContext for authentication
+- ToastContext for notifications
 - Local state for component data
 - URL params for page states
 
 ### Styling
 - Tailwind CSS for layouts
+- CSS variables for theming
 - Material UI components
-- Custom CSS when needed
+- Custom CSS modules
+- Mobile-first responsive design
+- Dark mode support (planned)
 
 ## 🔒 Security Features
 
