@@ -3,9 +3,21 @@ import { useSocket } from '../../context/SocketContext';
 
 const ChatRoom = ({ topic }) => {
     const socket = useSocket();
-    const [messages, setMessages] = useState([]);
-    const [newMessage, setNewMessage] = useState('');
     const messagesEndRef = useRef(null);
+    const [userCount, setUserCount] = useState(0);
+    const [newMessage, setNewMessage] = useState('');
+    const [messages, setMessages] = useState(() => {
+        // Try to load existing messages from sessionStorage
+        const savedMessages = sessionStorage.getItem(`chat_messages_${topic}`);
+        return savedMessages ? JSON.parse(savedMessages) : [];
+    });
+
+    // Save messages to sessionStorage whenever they change
+    useEffect(() => {
+        if (messages.length > 0) {
+            sessionStorage.setItem(`chat_messages_${topic}`, JSON.stringify(messages));
+        }
+    }, [messages, topic]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -18,27 +30,41 @@ const ChatRoom = ({ topic }) => {
     useEffect(() => {
         if (!socket || !topic) return;
 
-        console.log('Connecting to socket...');
-        
+        // Join the room
         socket.emit('joinRoom', topic);
-        console.log(`Joined room: ${topic}`);
 
+        // Listen for room user count updates
+        socket.on('roomUserCount', ({ count }) => {
+            setUserCount(count);
+        });
+
+        // Listen for messages
         socket.on('message', (data) => {
-            console.log('Received message:', data);
-            setMessages(prev => [...prev, data]);
+            setMessages(prev => {
+                const newMessages = [...prev, data];
+                sessionStorage.setItem(`chat_messages_${topic}`, JSON.stringify(newMessages));
+                return newMessages;
+            });
         });
 
+        // Listen for user joined events
         socket.on('userJoined', (data) => {
-            console.log('User joined:', data);
-            setMessages(prev => [...prev, { 
-                userId: 'System', 
-                message: `${data.userId} joined the chat` 
-            }]);
+            setMessages(prev => {
+                const newMessages = [...prev, { 
+                    userId: 'System', 
+                    message: `${data.userId} joined the chat` 
+                }];
+                sessionStorage.setItem(`chat_messages_${topic}`, JSON.stringify(newMessages));
+                return newMessages;
+            });
         });
 
+        // Cleanup on unmount or topic change
         return () => {
+            socket.emit('leaveRoom', topic);
             socket.off('message');
             socket.off('userJoined');
+            socket.off('roomUserCount');
         };
     }, [socket, topic]);
 
@@ -56,15 +82,22 @@ const ChatRoom = ({ topic }) => {
 
     const sendMessage = () => {
         if (!socket || !newMessage.trim()) return;
-
-        console.log('Sending message:', newMessage);
         socket.emit('message', { room: topic, message: newMessage });
         setNewMessage('');
     };
 
     return (
         <div className="flex flex-col h-full">
-            <div className="flex-1 overflow-y-auto mb-4 space-y-3 p-4" style={{ maxHeight: "calc(100% - 80px)" }}>
+            {/* User count display */}
+            <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 border-b">
+                <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-purple-700 text-sm">
+                    {userCount} {userCount === 1 ? 'user' : 'users'} in chat
+                </span>
+            </div>
+
+            {/* Messages area */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ height: "calc(100% - 120px)" }}>
                 {messages.map((msg, index) => (
                     <div 
                         key={index} 
@@ -88,6 +121,8 @@ const ChatRoom = ({ topic }) => {
                 ))}
                 <div ref={messagesEndRef} />
             </div>
+
+            {/* Message input */}
             <form onSubmit={handleSubmit} className="flex gap-2 p-4 bg-gray-50 border-t">
                 <input
                     type="text"
@@ -99,7 +134,7 @@ const ChatRoom = ({ topic }) => {
                 />
                 <button 
                     type="submit" 
-                    className="bg-purple-500 text-white px-4 py-2 rounded-full hover:bg-purple-600 transition-colors disabled:opacity-50"
+                    className="bg-purple-500 text-white px-6 py-2 rounded-full hover:bg-purple-600 transition-colors disabled:opacity-50"
                     disabled={!newMessage.trim()}
                 >
                     Send

@@ -70,8 +70,8 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: "Internal Server Error", details: err.message });
 });
 
-// Track online users
-const onlineUsers = new Set();
+// Track users in each room
+const roomUsers = new Map();
 
 // Handle WebSocket connections
 io.on('connection', (socket) => {
@@ -80,16 +80,22 @@ io.on('connection', (socket) => {
     // Generate anonymous user ID
     const userId = `user${Math.floor(Math.random() * 10000)}`;
     socket.userId = userId;
-    onlineUsers.add(userId);
     
-    // Broadcast updated user count to all clients
-    io.emit('userCount', onlineUsers.size);
-    console.log(`👤 User count: ${onlineUsers.size}`);
-
     // Join a room
     socket.on('joinRoom', (room) => {
+        // Add user to room tracking
+        if (!roomUsers.has(room)) {
+            roomUsers.set(room, new Set());
+        }
+        roomUsers.get(room).add(userId);
+        
+        // Join the room
         socket.join(room);
         console.log(`👤 ${userId} joined room: ${room}`);
+        
+        // Broadcast updated user count for this room
+        const roomUserCount = roomUsers.get(room).size;
+        io.to(room).emit('roomUserCount', { room, count: roomUserCount });
         io.to(room).emit('userJoined', { userId, room });
     });
 
@@ -99,12 +105,27 @@ io.on('connection', (socket) => {
         io.to(room).emit('message', { userId, message });
     });
 
+    // Handle room leave
+    socket.on('leaveRoom', (room) => {
+        if (roomUsers.has(room)) {
+            roomUsers.get(room).delete(userId);
+            const roomUserCount = roomUsers.get(room).size;
+            io.to(room).emit('roomUserCount', { room, count: roomUserCount });
+        }
+        socket.leave(room);
+        console.log(`👤 ${userId} left room: ${room}`);
+    });
+
     // Handle disconnection
     socket.on('disconnect', () => {
         console.log(`❌ Client disconnected: ${socket.id}`);
-        onlineUsers.delete(userId);
-        io.emit('userCount', onlineUsers.size);
-        console.log(`👤 User count: ${onlineUsers.size}`);
+        // Remove user from all rooms they were in
+        roomUsers.forEach((users, room) => {
+            if (users.delete(userId)) {
+                const roomUserCount = users.size;
+                io.to(room).emit('roomUserCount', { room, count: roomUserCount });
+            }
+        });
     });
 });
 

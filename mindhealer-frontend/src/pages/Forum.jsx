@@ -1,30 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Rnd } from 'react-rnd';
 import TopicList from '../components/forum/TopicList';
 import ChatRoom from '../components/forum/ChatRoom';
 import PostSection from '../components/forum/PostSection';
-import ChatLogo from '../components/forum/ChatLogo';
-import { useSocket } from '../context/SocketContext';
 
 const Forum = () => {
     const [selectedTopic, setSelectedTopic] = useState(null);
     const [showChatroom, setShowChatroom] = useState(false);
     const [minimized, setMinimized] = useState(false);
-    const [position, setPosition] = useState({ x: window.innerWidth - 420, y: window.innerHeight - 500 });
-    const [onlineUsers, setOnlineUsers] = useState(0);
-    const socket = useSocket();
-
-    useEffect(() => {
-        if (!socket) return;
-
-        socket.on('userCount', (count) => {
-            setOnlineUsers(count);
-        });
-
-        return () => {
-            socket.off('userCount');
-        };
-    }, [socket]);
+    const [position, setPosition] = useState({ x: window.innerWidth - 520, y: window.innerHeight - 600 });
 
     const handleDragStop = (e, d) => {
         setPosition({ x: d.x, y: d.y });
@@ -32,16 +16,6 @@ const Forum = () => {
 
     return (
         <div className="forum-page flex flex-col min-h-screen">
-            {/* Online Users Section */}
-            <div className="bg-purple-50 p-4 text-center">
-                <span className="inline-flex items-center">
-                    <span className="h-2 w-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
-                    <span className="text-purple-700 font-semibold">
-                        {onlineUsers} {onlineUsers === 1 ? 'user' : 'users'} online
-                    </span>
-                </span>
-            </div>
-
             <div className="flex flex-grow">
                 {/* Sidebar for topics */}
                 <div className="w-1/4 p-4 border-r">
@@ -64,8 +38,8 @@ const Forum = () => {
             {showChatroom && (
                 <Rnd
                     size={{ 
-                        width: minimized ? 200 : 320,
-                        height: minimized ? 60 : 400
+                        width: minimized ? 250 : 400,
+                        height: minimized ? 60 : 500
                     }}
                     position={position}
                     onDragStop={handleDragStop}
@@ -75,40 +49,46 @@ const Forum = () => {
                     }`}
                     enableResizing={!minimized}
                     dragHandleClassName="handle"
+                    minWidth={250}
+                    minHeight={minimized ? 60 : 400}
                 >
                     <div className="flex flex-col h-full">
                         <div 
-                            className="handle flex justify-between items-center p-3 bg-purple-500 cursor-move"
+                            className="handle flex justify-between items-center p-3 bg-gradient-to-r from-purple-900 to-purple-800 cursor-move"
                         >
-                            <div className="text-white font-semibold">
-                                {selectedTopic ? `Chat: ${selectedTopic}` : 'Select a topic'}
+                            <div className="text-white font-semibold flex items-center gap-2">
+                                <span className="text-lg">💬 Live Chat: {selectedTopic || 'Select Topic'}</span>
                             </div>
-                            <div className="flex space-x-2">
+                            <div className="flex items-center">
                                 <button
-                                    className="text-white hover:text-purple-200 transition-colors"
+                                    className="bg-purple-800 text-white w-8 h-8 flex items-center justify-center hover:bg-purple-700 transition-colors"
                                     onClick={() => setMinimized(!minimized)}
+                                    title={minimized ? 'Maximize' : 'Minimize'}
                                 >
-                                    {minimized ? '🔼' : '🔽'}
+                                    <span className="text-xl font-medium select-none leading-none" style={{ marginTop: '-2px' }}>
+                                        {minimized ? '+' : '−'}
+                                    </span>
                                 </button>
                                 <button
-                                    className="text-white hover:text-purple-200 transition-colors"
+                                    className="bg-purple-800 text-white w-8 h-8 flex items-center justify-center hover:bg-purple-700 transition-colors ml-1"
                                     onClick={() => setShowChatroom(false)}
+                                    title="Close"
                                 >
-                                    ✖
+                                    <span className="text-xl font-medium select-none leading-none" style={{ marginTop: '-2px' }}>
+                                        ×
+                                    </span>
                                 </button>
                             </div>
                         </div>
-                        {!minimized && (
-                            <div className="flex-1 overflow-hidden">
-                                {selectedTopic ? (
-                                    <ChatRoom topic={selectedTopic} />
-                                ) : (
-                                    <div className="flex-1 p-4 flex items-center justify-center text-gray-500">
-                                        Select a topic to start chatting
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                        <div className={`flex-1 overflow-hidden ${minimized ? 'hidden' : ''}`}>
+                            {selectedTopic ? (
+                                <ChatRoom topic={selectedTopic} />
+                            ) : (
+                                <div className="flex-1 p-4 flex items-center justify-center text-gray-500">
+                                    Select a topic to start chatting
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </Rnd>
             )}
