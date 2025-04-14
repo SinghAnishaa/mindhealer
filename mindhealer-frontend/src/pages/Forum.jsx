@@ -1,128 +1,119 @@
-import { useState, useEffect } from "react";
-import { Container } from "../components/ui/container";
-import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
-import { Button } from "../components/ui/button";
-import { MessageSquare, PlusCircle, Trash2 } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { Rnd } from 'react-rnd';
+import TopicList from '../components/forum/TopicList';
+import ChatRoom from '../components/forum/ChatRoom';
+import PostSection from '../components/forum/PostSection';
+import ChatLogo from '../components/forum/ChatLogo';
+import { useSocket } from '../context/SocketContext';
 
 const Forum = () => {
-  const [posts, setPosts] = useState(() => {
-    const savedPosts = localStorage.getItem("forumPosts");
-    return savedPosts ? JSON.parse(savedPosts) : [
-      { id: 1, title: "Welcome to MindHealer Forum", description: "Feel free to share your thoughts and experiences.", author: "Admin" },
-      { id: 2, title: "How do you handle stress?", description: "Share your best tips on managing stress effectively!", author: "User123" },
-    ];
-  });
+    const [selectedTopic, setSelectedTopic] = useState(null);
+    const [showChatroom, setShowChatroom] = useState(false);
+    const [minimized, setMinimized] = useState(false);
+    const [position, setPosition] = useState({ x: window.innerWidth - 420, y: window.innerHeight - 500 });
+    const [onlineUsers, setOnlineUsers] = useState(0);
+    const socket = useSocket();
 
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+    useEffect(() => {
+        if (!socket) return;
 
-  useEffect(() => {
-    localStorage.setItem("forumPosts", JSON.stringify(posts));
-  }, [posts]);
+        socket.on('userCount', (count) => {
+            setOnlineUsers(count);
+        });
 
-  const handleAddPost = () => {
-    if (title.trim() && description.trim()) {
-      const newPost = {
-        id: Date.now(),
-        title: title.trim(),
-        description: description.trim(),
-        author: "User", // Could be replaced with actual user name from context
-        timestamp: new Date().toISOString(),
-      };
-      setPosts([newPost, ...posts]);
-      setTitle("");
-      setDescription("");
-    }
-  };
+        return () => {
+            socket.off('userCount');
+        };
+    }, [socket]);
 
-  const handleDelete = (postId) => {
-    setPosts(posts.filter((post) => post.id !== postId));
-  };
+    const handleDragStop = (e, d) => {
+        setPosition({ x: d.x, y: d.y });
+    };
 
-  return (
-    <Container className="py-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Community Forum</h1>
-            <p className="text-gray-600 mt-2">Share your thoughts and connect with others</p>
-          </div>
-          <MessageSquare className="h-8 w-8 text-blue-600" />
-        </div>
-
-        {/* Create Post */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="text-xl">Create a New Post</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div>
-                <input
-                  type="text"
-                  placeholder="Post title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="input w-full"
-                />
-              </div>
-              <div>
-                <textarea
-                  placeholder="Share your thoughts..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="input w-full min-h-[100px]"
-                />
-              </div>
-              <Button
-                onClick={handleAddPost}
-                className="inline-flex items-center"
-                disabled={!title.trim() || !description.trim()}
-              >
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Create Post
-              </Button>
+    return (
+        <div className="forum-page flex flex-col min-h-screen">
+            {/* Online Users Section */}
+            <div className="bg-purple-50 p-4 text-center">
+                <span className="inline-flex items-center">
+                    <span className="h-2 w-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+                    <span className="text-purple-700 font-semibold">
+                        {onlineUsers} {onlineUsers === 1 ? 'user' : 'users'} online
+                    </span>
+                </span>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Posts List */}
-        <div className="space-y-4">
-          {posts.map((post) => (
-            <Card key={post.id} className="animate-fade-in">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                      {post.title}
-                    </h3>
-                    <p className="text-gray-600 mb-4">{post.description}</p>
-                    <div className="flex items-center text-sm text-gray-500">
-                      <span className="font-medium text-gray-700">
-                        Posted by {post.author}
-                      </span>
-                      {post.timestamp && (
-                        <span className="ml-4">
-                          {new Date(post.timestamp).toLocaleDateString()}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    onClick={() => handleDelete(post.id)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+            <div className="flex flex-grow">
+                {/* Sidebar for topics */}
+                <div className="w-1/4 p-4 border-r">
+                    <TopicList onSelectTopic={setSelectedTopic} selectedTopic={selectedTopic} />
+                    <button
+                        className="mt-4 w-full bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600 transition-colors"
+                        onClick={() => setShowChatroom(true)}
+                    >
+                        Chat with Someone Now
+                    </button>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+
+                {/* Main content area */}
+                <div className="w-3/4 p-4">
+                    <PostSection />
+                </div>
+            </div>
+
+            {/* Draggable Chatroom UI */}
+            {showChatroom && (
+                <Rnd
+                    size={{ 
+                        width: minimized ? 200 : 320,
+                        height: minimized ? 60 : 400
+                    }}
+                    position={position}
+                    onDragStop={handleDragStop}
+                    bounds="window"
+                    className={`bg-white shadow-xl rounded-lg overflow-hidden z-50 border border-purple-200 ${
+                        minimized ? 'resize-none' : ''
+                    }`}
+                    enableResizing={!minimized}
+                    dragHandleClassName="handle"
+                >
+                    <div className="flex flex-col h-full">
+                        <div 
+                            className="handle flex justify-between items-center p-3 bg-purple-500 cursor-move"
+                        >
+                            <div className="text-white font-semibold">
+                                {selectedTopic ? `Chat: ${selectedTopic}` : 'Select a topic'}
+                            </div>
+                            <div className="flex space-x-2">
+                                <button
+                                    className="text-white hover:text-purple-200 transition-colors"
+                                    onClick={() => setMinimized(!minimized)}
+                                >
+                                    {minimized ? '🔼' : '🔽'}
+                                </button>
+                                <button
+                                    className="text-white hover:text-purple-200 transition-colors"
+                                    onClick={() => setShowChatroom(false)}
+                                >
+                                    ✖
+                                </button>
+                            </div>
+                        </div>
+                        {!minimized && (
+                            <div className="flex-1 overflow-hidden">
+                                {selectedTopic ? (
+                                    <ChatRoom topic={selectedTopic} />
+                                ) : (
+                                    <div className="flex-1 p-4 flex items-center justify-center text-gray-500">
+                                        Select a topic to start chatting
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </Rnd>
+            )}
         </div>
-      </div>
-    </Container>
-  );
+    );
 };
 
 export default Forum;

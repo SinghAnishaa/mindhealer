@@ -5,7 +5,8 @@
     "@google/generative-ai": "^0.24.0",
     "@mui/icons-material": "^6.4.4",
     "@mui/material": "^6.4.4",
-    "react-router-dom": "^7.1.5"
+    "react-router-dom": "^7.1.5",
+    "socket.io": "^4.8.1"
   },
   "devDependencies": {
     "rollup": "^4.39.0"
