@@ -34,7 +34,7 @@ const statCards = [
   },
 ];
 
-const DashboardSnapshot = ({ data }) => {
+const DashboardSnapshot = ({ data, snapshot }) => {
   return (
     <section className="py-6">
       <Container>
@@ -75,6 +75,13 @@ const DashboardSnapshot = ({ data }) => {
               </Card>
             );
           })}
+        </div>
+        <h3>Average Mood</h3>
+        <div className="flex items-center gap-2">
+          {snapshot.averageMood}
+          <span className="text-sm text-gray-500">
+            ({snapshot.averageMoodExplanation})
+          </span>
         </div>
       </Container>
     </section>

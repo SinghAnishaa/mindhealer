@@ -12,4 +12,9 @@ const UserMoodSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+// Add a static method to fetch the first entry for a user
+UserMoodSchema.statics.getFirstEntryForUser = async function (userId) {
+  return this.findOne({ userId }).sort({ createdAt: 1 }).exec();
+};
+
 module.exports = mongoose.model('UserMood', UserMoodSchema);

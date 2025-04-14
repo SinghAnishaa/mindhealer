@@ -6,7 +6,6 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../co
 import { Container } from "../components/ui/container";
 import { Heart, MessageCircle, Brain, Users, ArrowRight } from "lucide-react";
 import Testimonials from "../components/Testimonials";
-import ContactUs from "../components/ContactUs";
 
 const Home = () => {
   const { user } = useContext(AuthContext);
@@ -92,78 +91,76 @@ const Home = () => {
         </Container>
       </section>
 
-      {/* Mood Check-in Section (Only for logged-in users) */}
+      {/* Mood Check-in and Resources Section */}
       {user && (
         <section className="py-16 bg-gray-50">
           <Container>
-            <Card className="max-w-2xl mx-auto border-none shadow-lg">
-              <CardHeader>
-                <CardTitle className="text-2xl">How are you feeling today?</CardTitle>
-                <CardDescription>Track your mood to get personalized support</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-center space-x-6">
-                  {["😊", "😐", "😢", "😠", "😴"].map((mood) => (
-                    <button
-                      key={mood}
-                      onClick={() => setSelectedMood(mood)}
-                      disabled={isSubmitting}
-                      className={`text-4xl transition-all duration-200 hover:scale-110 ${
-                        selectedMood === mood ? "scale-125 border-b-2 border-blue-600" : ""
-                      }`}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Mood Check-in Card */}
+              <Card className="border-none shadow-lg">
+                <CardHeader>
+                  <CardTitle className="text-2xl">How are you feeling today?</CardTitle>
+                  <CardDescription>Track your mood and see personalized insights on your dashboard</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="flex justify-center space-x-6">
+                    {["😊", "😐", "😢", "😠", "😴"].map((mood) => (
+                      <button
+                        key={mood}
+                        onClick={() => setSelectedMood(mood)}
+                        disabled={isSubmitting}
+                        className={`text-4xl transition-all duration-200 hover:scale-110 ${
+                          selectedMood === mood ? "scale-125 border-b-2 border-blue-600" : ""
+                        }`}
+                      >
+                        {mood}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="text-center">
+                    <p className="text-gray-600 mb-4">Visit your dashboard to track your moods, journal entries, and see personalized analytics</p>
+                    <Button
+                      onClick={() => navigate("/dashboard")}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
                     >
-                      {mood}
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                      Go to Dashboard
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Mental Health Resources Card */}
+              <Card className="border-none shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <span className="text-2xl">🧘</span>
+                    Mental Health Resources
+                  </CardTitle>
+                  <CardDescription>Access curated resources to support your mental health journey</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-3">
+                    {resourceLinks.meditation.map((link, index) => (
+                      <li key={index}>
+                        <a 
+                          href={link.url} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                          {link.title}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            </div>
           </Container>
         </section>
       )}
 
-      {/* Resources Section */}
-      <section className="py-20">
-        <Container>
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold mb-4">Mental Health Resources</h2>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Access curated resources to support your mental health journey
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <Card className="border-none shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <span className="text-2xl">🧘</span>
-                  Meditation Guides
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-3">
-                  {resourceLinks.meditation.map((link, index) => (
-                    <li key={index}>
-                      <a 
-                        href={link.url} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800 hover:underline"
-                      >
-                        {link.title}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-
-            {/* Additional resource cards */}
-          </div>
-        </Container>
-      </section>
-
       <Testimonials />
-      <ContactUs />
     </div>
   );
 };
@@ -175,7 +172,6 @@ const resourceLinks = {
     { title: "Mindfulness Practices", url: "https://www.calm.com/" },
     { title: "Guided Meditation Sessions", url: "https://insighttimer.com/" },
   ],
-  // Add other resource categories as needed
 };
 
 export default Home;

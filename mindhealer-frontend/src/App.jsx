@@ -15,6 +15,7 @@ const Profile = React.lazy(() => import("./pages/Profile"));
 const Login = React.lazy(() => import("./pages/Login"));
 const Signup = React.lazy(() => import("./pages/Signup"));
 const Therapists = React.lazy(() => import("./pages/Therapists"));
+const Contact = React.lazy(() => import("./pages/Contact"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 
 const LoadingFallback = () => (
@@ -33,6 +34,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/contact" element={<Contact />} />
               <Route
                 path="/dashboard"
                 element={

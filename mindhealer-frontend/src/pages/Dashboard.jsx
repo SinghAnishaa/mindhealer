@@ -26,6 +26,22 @@ ChartJS.register(
   Legend
 );
 
+const moodToScore = {
+  'happy': 5,
+  'neutral': 3,
+  'sad': 2,
+  'angry': 1,
+  'tired': 0
+};
+
+const wordToEmoji = {
+  'happy': '😊',
+  'neutral': '😐',
+  'sad': '😢',
+  'angry': '😠',
+  'tired': '😴'
+};
+
 const moodEmojis = {
   "😊": { score: 5, label: "Happy", icon: Smile },
   "😐": { score: 3, label: "Neutral", icon: Meh },
@@ -51,28 +67,58 @@ const Dashboard = () => {
           },
         }
       );
-      setSnapshot(res.data);
+      
+      // Format data before setting state
+      const formattedData = {
+        ...res.data,
+        startDate: `${res.data.daysSinceStart} days ago`,
+        averageMood: res.data.averageMood || "No entries yet",
+        moodTrend: res.data.moodTrend || "No entries yet",
+        averageMoodExplanation: res.data.averageMoodExplanation || "No explanation available",
+        recentMoods: res.data.recentMoods || []
+      };
 
-      const labels = res.data.recentMoods.map((e) =>
-        new Date(e.createdAt).toLocaleDateString()
-      );
-      const data = res.data.recentMoods.map((e) => moodEmojis[e.mood]?.score || 2.5);
+      setSnapshot(formattedData);
 
-      setChartData({
-        labels,
-        datasets: [
-          {
-            label: "Mood Score Over Time",
-            data,
-            fill: false,
-            borderColor: "#3b82f6",
-            backgroundColor: "#93c5fd",
-            pointBackgroundColor: "#1d4ed8",
-            pointRadius: 5,
-            tension: 0.4,
-          },
-        ],
-      });
+      // Process mood data for the chart
+      if (res.data.allMoods && res.data.allMoods.length > 0) {
+        // Group entries by date
+        const entriesByDate = res.data.allMoods.reduce((acc, entry) => {
+          const date = new Date(entry.createdAt).toLocaleDateString();
+          if (!acc[date]) {
+            acc[date] = [];
+          }
+          acc[date].push(entry);
+          return acc;
+        }, {});
+
+        // Calculate average mood score for each date
+        const sortedDates = Object.keys(entriesByDate).sort((a, b) => 
+          new Date(a) - new Date(b)
+        );
+
+        const averageScores = sortedDates.map(date => {
+          const entries = entriesByDate[date];
+          const totalScore = entries.reduce((sum, entry) => sum + moodToScore[entry.mood], 0);
+          return totalScore / entries.length;
+        });
+
+        setChartData({
+          labels: sortedDates,
+          datasets: [
+            {
+              label: "Daily Average Mood",
+              data: averageScores,
+              fill: false,
+              borderColor: "#3b82f6",
+              backgroundColor: "#93c5fd",
+              pointBackgroundColor: "#1d4ed8",
+              pointRadius: 5,
+              tension: 0.4,
+            },
+          ],
+        });
+      }
     } catch (err) {
       console.error("Error fetching dashboard snapshot:", err);
     }
@@ -135,7 +181,7 @@ const Dashboard = () => {
         </div>
 
         {/* Quick Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
@@ -145,7 +191,39 @@ const Dashboard = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Tracking Since</p>
                   <p className="text-xl font-semibold text-gray-900">
-                    {new Date(snapshot.startDate).toLocaleDateString()}
+                    {snapshot.startDate}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-purple-100 rounded-full">
+                  <Smile className="h-6 w-6 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Average Mood</p>
+                  <p className="text-xl font-semibold text-gray-900">
+                    {snapshot.averageMood} ({snapshot.averageMoodExplanation})
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-yellow-100 rounded-full">
+                  <BarChart className="h-6 w-6 text-yellow-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Mood Trend</p>
+                  <p className="text-xl font-semibold text-gray-900">
+                    {snapshot.moodTrend}
                   </p>
                 </div>
               </div>
@@ -162,22 +240,6 @@ const Dashboard = () => {
                   <p className="text-sm font-medium text-gray-600">Journal Entries</p>
                   <p className="text-xl font-semibold text-gray-900">
                     {snapshot.totalEntries}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center space-x-4">
-                <div className="p-3 bg-purple-100 rounded-full">
-                  <Smile className="h-6 w-6 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Average Mood</p>
-                  <p className="text-xl font-semibold text-gray-900">
-                    {snapshot.averageMood || "N/A"}
                   </p>
                 </div>
               </div>
@@ -281,7 +343,7 @@ const Dashboard = () => {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-2">
-                      <span className="text-2xl">{entry.mood}</span>
+                      <span className="text-2xl">{wordToEmoji[entry.mood] || entry.mood}</span>
                       <span className="text-sm text-gray-600">
                         {new Date(entry.createdAt).toLocaleString()}
                       </span>

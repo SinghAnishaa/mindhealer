@@ -8,6 +8,7 @@ const Footer = () => {
     { name: "Forum", path: "/forum" },
     { name: "Chat", path: "/chat" },
     { name: "Therapists", path: "/therapists" },
+    { name: "Contact", path: "/contact" }
   ];
 
   return (

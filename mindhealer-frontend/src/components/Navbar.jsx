@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { login, signup } from "../api/auth";
 import { cn } from "../utils/ui";
-import { Home, MessageCircle, Users, Heart } from "lucide-react";
+import { Home, MessageCircle, Users, Heart, BarChart } from "lucide-react";
 import { AppBar, Box, Modal, TextField, Button, Avatar, Menu, MenuItem } from "@mui/material";
 
 const Navbar = () => {
@@ -19,6 +19,7 @@ const Navbar = () => {
 
   const navItems = [
     { name: "Home", path: "/", icon: Home },
+    { name: "Dashboard", path: "/dashboard", icon: BarChart },
     { name: "Forum", path: "/forum", icon: Users },
     { name: "Chat", path: "/chat", icon: MessageCircle },
     { name: "Therapists", path: "/therapists", icon: Heart },
